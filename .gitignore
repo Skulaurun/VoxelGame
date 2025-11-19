@@ -1,0 +1,6 @@
+.vs/
+out/
+build/
+
+vendor/*
+!vendor/glad/
