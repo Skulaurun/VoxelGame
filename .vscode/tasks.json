@@ -1,0 +1,36 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cmake",
+			"label": "(Windows) Build: Debug",
+			"command": "build",
+			"preset": "windows-debug",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"options": {
+				"environment": {
+					"CLICOLOR_FORCE": "1"
+				}
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "cmake",
+			"label": "(Windows) Build: Release",
+			"command": "build",
+			"preset": "windows-release",
+			"group": {
+				"kind": "build"
+			},
+			"options": {
+				"environment": {
+					"CLICOLOR_FORCE": "1"
+				}
+			},
+			"problemMatcher": []
+		},
+	]
+}

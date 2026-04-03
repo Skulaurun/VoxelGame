@@ -1,6 +1,9 @@
 .vs/
+.idea/
+.cache/
 out/
 build/
 
 vendor/*
 !vendor/glad/
+!vendor/stb_image.cpp

@@ -15,6 +15,13 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
+	stb
+	GIT_REPOSITORY https://github.com/nothings/stb
+	GIT_TAG f1c79c02822848a9bed4315b12c8c8f3761e1296
+	SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb
+)
+
+FetchContent_Declare(
     EnTT
     GIT_REPOSITORY https://github.com/skypjack/entt
     GIT_TAG v3.15.0
@@ -33,9 +40,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(
 	GLFW
 	GLM
+    stb
     EnTT
 	ImGui
 )
+
+add_library(stb STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb_image.cpp
+)
+target_include_directories(stb PUBLIC ${stb_SOURCE_DIR})
 
 add_library(ImGui_GLFW STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -56,4 +69,4 @@ target_link_libraries(ImGui_GLFW
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad)
 
-add_subdirectory(src ${CMAKE_CURRENT_BINARY_DIR}/bin)
+add_subdirectory(src/Engine ${CMAKE_CURRENT_BINARY_DIR}/bin)

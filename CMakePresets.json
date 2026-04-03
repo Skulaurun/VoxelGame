@@ -12,6 +12,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
       },
       "vendor": {
@@ -31,6 +32,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
       },
       "vendor": {
@@ -38,6 +40,18 @@
           "hostOS": [ "Windows" ]
         }
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-debug",
+      "displayName": "Windows x64 Debug",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-release",
+      "displayName": "Windows x64 Release",
+      "configurePreset": "windows-release"
     }
   ]
 }

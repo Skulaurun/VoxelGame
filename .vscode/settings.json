@@ -1,0 +1,21 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.vs": true,
+        "**/.cache": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "compile_commands.json": true
+    },
+    "search.exclude": {
+        "**/vendor": true,
+        "**/_deps": true
+    },
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}",
+        "--header-insertion=never"
+    ],
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "explorer.compactFolders": true
+}
