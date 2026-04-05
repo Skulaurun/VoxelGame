@@ -4,6 +4,8 @@
 out/
 build/
 
+compile_commands.json
+
 vendor/*
 !vendor/glad/
 !vendor/stb_image.cpp

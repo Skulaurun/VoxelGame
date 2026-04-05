@@ -1,6 +1,22 @@
 include(FetchContent)
 
 FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog
+    GIT_TAG v1.17.0
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog
+    OVERRIDE_FIND_PACKAGE
+)
+
+FetchContent_Declare(
+    tracy
+    GIT_REPOSITORY https://github.com/wolfpld/tracy
+    GIT_TAG v0.13.1
+    GIT_SHALLOW TRUE
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/tracy
+)
+
+FetchContent_Declare(
 	GLM
 	GIT_REPOSITORY https://github.com/g-truc/glm
 	GIT_TAG 1.0.2
@@ -38,6 +54,8 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(
+    spdlog
+    tracy
 	GLFW
 	GLM
     stb
