@@ -8,8 +8,12 @@ add_library(VoxelEngine
     "Renderer/OpenGL/VertexBuffer.cpp"
     "Renderer/OpenGL/IndexBuffer.cpp"
     "Renderer/OpenGL/VertexArray.cpp"
-
     "Renderer/Renderer.cpp"
+    "Renderer/ChunkRenderer.cpp"
+
+    "World/Voxel.cpp"
+    "World/Chunk.cpp"
+    "World/World.cpp"
     
     "Application.cpp"
 )
