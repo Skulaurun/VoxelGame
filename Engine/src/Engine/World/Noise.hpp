@@ -35,7 +35,6 @@ constexpr int16_t permutationTable[] = {
 };
 
 inline float perlinNoise(const glm::vec3& point) {
-    ZoneScoped;
     glm::ivec3 ip{ glm::floor(point.x), glm::floor(point.y), glm::floor(point.z) };
     glm::vec3 fp = point - glm::vec3(ip);
 
@@ -97,7 +96,6 @@ inline float perlinNoise(const glm::vec3& point) {
 }
 
 inline float perlinNoise(const glm::vec2& point) {
-    ZoneScoped;
     glm::ivec2 ip{ glm::floor(point.x), glm::floor(point.y) };
     glm::vec2 fp = point - glm::vec2(ip);
 
