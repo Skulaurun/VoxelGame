@@ -38,12 +38,14 @@ void World::render(ChunkRenderer& renderer, const glm::vec3& playerPosition) {
     for (int32_t y = (position.y - viewRange); y <= (position.y + viewRange); y++) {
         for (int32_t x = (position.x - viewRange); x <= (position.x + viewRange); x++) {
             for (int32_t z = (position.z - viewRange); z <= (position.z + viewRange); z++) {
-                Chunk* chunk = getChunkAt(glm::ivec3{ x, y, z });
-                if (chunk && glm::distance(playerPosition, glm::vec3(chunk->getPosition() * Chunk::SIZE)) <= viewRange * Chunk::SIZE) {
-                    if (!std::ranges::contains(loadedChunks, chunk)) {
+                glm::ivec3 chunkPosition{ x, y, z };
+
+                if (glm::distance(playerPosition, glm::vec3{chunkPosition * Chunk::SIZE}) <= viewRange * Chunk::SIZE) {
+                    Chunk* chunk = getChunkAt(chunkPosition);
+                    if (chunk && !std::ranges::contains(loadedChunks, chunk)) {
                         // Load chunk
                         if (chunk->getMesh().indices.size() == 0) {
-                            chunk->generateMesh(chunk->getPosition() * Chunk::SIZE);
+                            chunk->generateMesh(chunkPosition * Chunk::SIZE);
                         }
                         for (std::size_t i = 0; i < loadedChunks.size(); i++) {
                             if (loadedChunks[i] == nullptr) {
