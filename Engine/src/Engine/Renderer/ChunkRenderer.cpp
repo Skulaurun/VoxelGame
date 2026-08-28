@@ -12,6 +12,7 @@ void ChunkRenderer::render() {
     ZoneScoped;
 
     for (const auto& renderable : renderables) {
+        // TODO: Prevent empty drawcalls (with index count == 0)
         if (renderable.enabled) {
             Renderer::draw(*renderable.vertexArray, renderable.indexCount);
         }
@@ -47,6 +48,7 @@ void ChunkRenderer::resize(uint32_t viewRange) {
             VertexAttributeType::Float3,
             VertexAttributeType::Float4,
             VertexAttributeType::Float2,
+            VertexAttributeType::Float,
             VertexAttributeType::Float
         });
     

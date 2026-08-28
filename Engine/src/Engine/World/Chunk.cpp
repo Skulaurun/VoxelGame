@@ -5,26 +5,7 @@
 #include <tracy/Tracy.hpp>
 
 Chunk::Chunk(World& world, glm::ivec3 position)
-    : world(world), position(position) {
-
-    // TODO: Move to world generator
-    for (int32_t y = 0; y < SIZE; y++) {
-        for (int32_t x = 0; x < SIZE; x++) {
-            for (int32_t z = 0; z < SIZE; z++) {
-                glm::vec3 worldPosition = toWorldPosition({x, y, z});
-
-                const float scale = 0.05f;
-                float baseHeight = 48.0f + perlinNoise(glm::vec2{worldPosition.x, worldPosition.z} * scale) * 32.0f;
-                float bias = -1.0f + (worldPosition.y / baseHeight) * 2.0f;
-
-                float density = perlinNoise(worldPosition * scale) - bias;
-                if (density > 0.0f) {
-                    at({x, y, z})->setType(BlockType::Stone);
-                }
-            }
-        }
-    }
-}
+    : world{world}, position{position} {}
 
 glm::ivec3 Chunk::toWorldPosition(glm::ivec3 voxelPosition) {
     return world.toWorldPosition(position, voxelPosition);
@@ -171,8 +152,41 @@ void Chunk::generateMesh(glm::vec3 offset) {
                             const float centerOffset = (SIZE - 1) / 2.0f;
                             position += glm::vec3(-centerOffset, -centerOffset, -centerOffset);
                             position += offset;
+                            
+                            glm::vec3 signs = glm::sign(Voxel::FACES[i * 4 + j]);
+                            glm::vec3 normal = Voxel::VERTEX_NORMALS[i * 4 + j];
 
-                            mesh.vertices.emplace_back(Vertex{ position, COLORS[j], glm::vec2{}, 0.0f });
+                            auto corners = std::to_array<glm::vec3>({
+                                {signs.x, signs.y, signs.z},
+                                
+                                {0.0f, signs.y, signs.z},
+                                {signs.x, 0.0f, signs.z},
+                                {signs.x, signs.y, 0.0f}
+                            });
+
+                            for (std::size_t i = 1; i <= 2; i++) {
+                                if (normal * corners[i] == glm::vec3{0.0f, 0.0f, 0.0f}) {
+                                    corners[i] = corners.back();
+                                    break;
+                                }
+                            }
+
+                            auto computeAo = [](int32_t side1, int32_t side2, int32_t corner) -> float {
+                                if (side1 && side2) {
+                                    return 0;
+                                }
+
+                                return static_cast<float>(3 - (side1 + side2 + corner)) / 3.0f;
+                            };
+
+                            // TODO: Assert
+                            float ao = computeAo(
+                                !tempAt(x + corners[1].x, y + corners[1].y, z + corners[1].z)->isTransparent(),
+                                !tempAt(x + corners[2].x, y + corners[2].y, z + corners[2].z)->isTransparent(),
+                                !tempAt(x + corners[0].x, y + corners[0].y, z + corners[0].z)->isTransparent()
+                            );
+
+                            mesh.vertices.emplace_back(Vertex{ position, { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2{}, 0.0f, ao });
                         }
                         quadCount++;
                     }

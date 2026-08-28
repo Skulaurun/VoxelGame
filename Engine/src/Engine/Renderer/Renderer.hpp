@@ -7,6 +7,7 @@ struct Vertex {
     glm::vec4 color;
     glm::vec2 textureCoordinate;
     float samplerID;
+    float ao;
 };
 
 class VertexArray;

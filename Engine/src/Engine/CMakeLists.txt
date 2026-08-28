@@ -14,6 +14,7 @@ add_library(VoxelEngine
     "World/Voxel.cpp"
     "World/Chunk.cpp"
     "World/World.cpp"
+    "World/WorldGenerator.cpp"
     
     "Application.cpp"
 )

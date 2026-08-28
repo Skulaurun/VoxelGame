@@ -5,19 +5,6 @@
 
 #include <print>
 
-void World::generate() {
-    ZoneScoped;
-
-    for (int32_t y = -8; y <= 8; y++) {
-        for (int32_t x = -8; x <= 8; x++) {
-            for (int32_t z = -8; z <= 8; z++) {
-                glm::ivec3 coord(x, y, z);
-                chunks[coord] = std::make_unique<Chunk>(*this, coord);
-            }
-        }
-    }
-}
-
 void World::render(ChunkRenderer& renderer, const glm::vec3& playerPosition) {
     ZoneScoped;
 
@@ -29,7 +16,7 @@ void World::render(ChunkRenderer& renderer, const glm::vec3& playerPosition) {
 
     int32_t viewRange = renderer.getViewRange();
     for (std::size_t i = 0; i < loadedChunks.size(); i++) {
-        if (loadedChunks[i] && glm::distance(playerPosition, glm::vec3(loadedChunks[i]->getPosition() * Chunk::SIZE)) > viewRange * Chunk::SIZE) {
+        if (loadedChunks[i] && glm::distance(playerPosition, glm::vec3{loadedChunks[i]->getPosition() * Chunk::SIZE}) > viewRange * Chunk::SIZE) {
             loadedChunks[i] = nullptr;
             renderer.setEnabled(i, false);
         }
@@ -67,21 +54,28 @@ void World::setViewRange(uint32_t viewRange) {
     loadedChunks.resize(side * side * side, nullptr);
 }
 
+void World::setChunk(std::unique_ptr<Chunk> chunk) {
+    std::scoped_lock lock{m_mtxChunks};
+    chunks[chunk->getPosition()] = std::move(chunk);
+}
+
 Chunk* World::getChunkAt(glm::ivec3 position) {
+    std::scoped_lock lock{m_mtxChunks};
     auto it = chunks.find(position);
     return (it != chunks.end()) ? it->second.get() : nullptr;
     return nullptr;
 }
 const Chunk* World::getChunkAt(glm::ivec3 position) const {
+    std::scoped_lock lock{m_mtxChunks};
     auto it = chunks.find(position);
     return (it != chunks.end()) ? it->second.get() : nullptr;
     return nullptr;
 }
 
 glm::ivec3 World::toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelPosition) {
-    return glm::ivec3(
+    return glm::ivec3{
         chunkPosition.x * Chunk::SIZE + voxelPosition.x,
         chunkPosition.y * Chunk::SIZE + voxelPosition.y,
         chunkPosition.z * Chunk::SIZE + voxelPosition.z
-    );
+    };
 }

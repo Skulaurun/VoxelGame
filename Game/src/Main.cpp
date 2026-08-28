@@ -8,6 +8,7 @@
 #include <Engine/Renderer/OpenGL/Texture.hpp>
 
 #include <Engine/World/World.hpp>
+#include <Engine/World/WorldGenerator.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -21,12 +22,15 @@ constexpr auto vertexShaderSource = R"(
     #version 450
     layout (location = 0) in vec3 aPosition;
     layout (location = 1) in vec4 aColor;
+    layout (location = 4) in float aAO;
     uniform mat4 uViewProjection;
     out vec4 vertexColor;
+    out float ao;
     void main()
     {
         gl_Position = uViewProjection * vec4(aPosition, 1.0);
         vertexColor = aColor;
+        ao = aAO;
     }
 )";
 
@@ -34,9 +38,13 @@ constexpr auto fragmentShaderSource = R"(
     #version 450
     out vec4 fragment;
     in vec4 vertexColor;
+    in float ao;
     void main()
     {
-        fragment = vertexColor;
+        vec4 color = vertexColor;
+        color.xyz *= min(ao + 0.25, 1.0);
+
+        fragment = color;
     }
 )";
 
@@ -116,11 +124,22 @@ int main() {
     Renderer::init();
 
     World world{};
-    world.generate();
-    world.setViewRange(8);
+    WorldGenerator worldGenerator{world};
+
+    worldGenerator.enqueue([](WorldGenerator::ChunkQueue& queue) {
+        for (int32_t y = -World::CHUNK_SIZE; y <= World::CHUNK_SIZE; y++) {
+            for (int32_t x = -World::CHUNK_SIZE; x <= World::CHUNK_SIZE; x++) {
+                for (int32_t z = -World::CHUNK_SIZE; z <= World::CHUNK_SIZE; z++) {
+                    queue.emplace_back(x, y, z);
+                }
+            }
+        }
+    });
+
+    world.setViewRange(World::CHUNK_SIZE);
 
     ChunkRenderer chunkRenderer{};
-    chunkRenderer.resize(8);
+    chunkRenderer.resize(World::CHUNK_SIZE);
 
     Shader shader({
         { ShaderType::Vertex, vertexShaderSource },
