@@ -5,7 +5,7 @@
 #include <tracy/Tracy.hpp>
 
 Chunk::Chunk(World& world, glm::ivec3 position)
-    : world{world}, position{position} {}
+    : world{world}, position{position}, m_dirty{false} {}
 
 glm::ivec3 Chunk::toWorldPosition(glm::ivec3 voxelPosition) {
     return world.toWorldPosition(position, voxelPosition);
@@ -148,9 +148,6 @@ void Chunk::generateMesh(glm::vec3 offset) {
                         for (std::size_t j = 0; j < 4; j++) {
                             glm::vec3 position = Voxel::FACES[i * 4 + j];
                             position += glm::ivec3(x - 1, y - 1, z - 1);
-
-                            const float centerOffset = (SIZE - 1) / 2.0f;
-                            position += glm::vec3(-centerOffset, -centerOffset, -centerOffset);
                             position += offset;
                             
                             glm::vec3 signs = glm::sign(Voxel::FACES[i * 4 + j]);

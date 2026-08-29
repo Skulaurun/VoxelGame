@@ -29,7 +29,12 @@ void World::render(ChunkRenderer& renderer, const glm::vec3& playerPosition) {
 
                 if (glm::distance(playerPosition, glm::vec3{chunkPosition * Chunk::SIZE}) <= viewRange * Chunk::SIZE) {
                     Chunk* chunk = getChunkAt(chunkPosition);
-                    if (chunk && !std::ranges::contains(loadedChunks, chunk)) {
+                    if (!chunk) {
+                        continue;
+                    }
+
+                    auto it = std::ranges::find(loadedChunks, chunk);
+                    if (it == loadedChunks.end()) {
                         // Load chunk
                         if (chunk->getMesh().indices.size() == 0) {
                             chunk->generateMesh(chunkPosition * Chunk::SIZE);
@@ -41,11 +46,30 @@ void World::render(ChunkRenderer& renderer, const glm::vec3& playerPosition) {
                                 break;
                             }
                         }
+                    } else if (chunk->isDirty()) {
+                        // Reload chunk
+                        chunk->generateMesh(chunkPosition * Chunk::SIZE);
+                        std::size_t i = it - loadedChunks.begin();
+                        renderer.uploadMesh(chunk->getMesh(), i);
+                        chunk->setDirty(false);
                     }
                 }
             }
         }
     }
+}
+
+glm::ivec3 World::castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
+    for (float i = 0.0f; i < maxDistance; i += 0.1f) {
+        glm::ivec3 position = glm::round(origin + i * direction);
+        Voxel* voxel = getVoxelAt(position);
+        if (voxel && !voxel->isTransparent()) {
+            return position;
+        }
+    }
+
+    // FIXME:
+    return {};
 }
 
 void World::setViewRange(uint32_t viewRange) {
@@ -72,10 +96,33 @@ const Chunk* World::getChunkAt(glm::ivec3 position) const {
     return nullptr;
 }
 
+Voxel* World::getVoxelAt(glm::ivec3 worldPosition) {
+    Chunk* chunk = getChunkAt(World::toChunkPosition(worldPosition));
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    return chunk->at(World::toLocalPosition(worldPosition));
+}
+
 glm::ivec3 World::toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelPosition) {
     return glm::ivec3{
         chunkPosition.x * Chunk::SIZE + voxelPosition.x,
         chunkPosition.y * Chunk::SIZE + voxelPosition.y,
         chunkPosition.z * Chunk::SIZE + voxelPosition.z
+    };
+}
+
+glm::ivec3 World::toLocalPosition(glm::ivec3 worldPosition) {
+    return ((worldPosition % Chunk::SIZE) + Chunk::SIZE) % Chunk::SIZE;
+}
+
+glm::ivec3 World::toChunkPosition(glm::ivec3 worldPosition) {
+    glm::ivec3 c = worldPosition / Chunk::SIZE;
+    glm::ivec3 v = worldPosition % Chunk::SIZE;
+    return glm::ivec3{
+        c.x - (v.x < 0),
+        c.y - (v.y < 0),
+        c.z - (v.z < 0)
     };
 }

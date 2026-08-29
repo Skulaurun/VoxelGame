@@ -22,6 +22,8 @@ public:
 public:
     void render(ChunkRenderer& renderer, const glm::vec3& playerPosition);
 
+    glm::ivec3 castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
+
     void setViewRange(uint32_t viewRange);
 
     void setChunk(std::unique_ptr<Chunk> chunk);
@@ -29,7 +31,11 @@ public:
     Chunk* getChunkAt(glm::ivec3 position);
     const Chunk* getChunkAt(glm::ivec3 position) const;
 
+    Voxel* getVoxelAt(glm::ivec3 worldPosition);
+
     static glm::ivec3 toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelPosition);
+    static glm::ivec3 toChunkPosition(glm::ivec3 worldPosition);
+    static glm::ivec3 toLocalPosition(glm::ivec3 worldPosition);
 
 private:
     std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>> chunks;

@@ -44,6 +44,9 @@ public:
 
     void generateMesh(glm::vec3 offset);
 
+    void setDirty(bool dirty) { m_dirty = dirty; }
+
+    bool isDirty() const { return m_dirty; }
     glm::ivec3 getPosition() { return position; }
     const Mesh& getMesh() const { return mesh; }
 
@@ -53,5 +56,6 @@ private:
     glm::ivec3 position;
     std::array<Voxel, CUBIC_SIZE> voxels;
     Mesh mesh;
+    bool m_dirty;
 
 };

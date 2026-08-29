@@ -18,35 +18,24 @@
 
 #include <tracy/Tracy.hpp>
 
-constexpr auto vertexShaderSource = R"(
-    #version 450
-    layout (location = 0) in vec3 aPosition;
-    layout (location = 1) in vec4 aColor;
-    layout (location = 4) in float aAO;
-    uniform mat4 uViewProjection;
-    out vec4 vertexColor;
-    out float ao;
-    void main()
-    {
-        gl_Position = uViewProjection * vec4(aPosition, 1.0);
-        vertexColor = aColor;
-        ao = aAO;
-    }
-)";
+struct ShaderFile {
 
-constexpr auto fragmentShaderSource = R"(
-    #version 450
-    out vec4 fragment;
-    in vec4 vertexColor;
-    in float ao;
-    void main()
-    {
-        vec4 color = vertexColor;
-        color.xyz *= min(ao + 0.25, 1.0);
+constexpr static char defaultVertex[] =
+{
+#embed "../shaders/default.vert"
+};
 
-        fragment = color;
-    }
-)";
+constexpr static char defaultFragment[] =
+{
+#embed "../shaders/default.frag"
+};
+
+};
+
+template<std::size_t Size>
+constexpr auto embedView(const char (&data)[Size]) -> std::string_view {
+    return { data, Size };
+}
 
 glm::vec3 toCartesian(const float theta, const float phi) {
     return {
@@ -56,9 +45,13 @@ glm::vec3 toCartesian(const float theta, const float phi) {
     };
 }
 
+struct GameState {
+    World world;
+};
+
 glm::vec3 cameraPosition = glm::vec3(0.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 // cameraDir
 
 float yaw = -90.0f;
@@ -75,16 +68,16 @@ void processInput(GLFWwindow* window, const float dt) {
         cameraPosition -= speed * cameraFront;
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        cameraPosition += speed * glm::normalize(glm::cross(cameraUp, cameraFront));
+        cameraPosition += speed * glm::normalize(glm::cross(worldUp, cameraFront));
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        cameraPosition += speed * glm::normalize(glm::cross(cameraFront, cameraUp));
+        cameraPosition += speed * glm::normalize(glm::cross(cameraFront, worldUp));
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        cameraPosition += speed * cameraUp;
+        cameraPosition += speed * worldUp;
     }
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        cameraPosition -= speed * cameraUp;
+        cameraPosition -= speed * worldUp;
     }
 }
 
@@ -118,13 +111,54 @@ void processScroll(GLFWwindow* window, double xoffset, double yoffset) {
     cameraSpeed += yoffset;
 }
 
+void processMouseButton(GLFWwindow* window, int button, int action, int mods) {
+    auto& [world] = *static_cast<GameState*>(glfwGetWindowUserPointer(window));
+    
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        glm::ivec3 blockPosition = world.castRay(cameraPosition, cameraFront, 10.0f);
+        Voxel* voxel = world.getVoxelAt(blockPosition);
+        if (voxel) {
+            voxel->setType(BlockType::Void);
+
+            glm::ivec3 localPosition = World::toLocalPosition(blockPosition);
+            glm::ivec3 chunkPosition = World::toChunkPosition(blockPosition);
+
+            Chunk* chunk = world.getChunkAt(chunkPosition);
+            if (chunk) {
+                chunk->setDirty(true);
+            }
+
+            int dir[] = {-1, 1};
+            int boundary[] = {0, Chunk::SIZE - 1};
+
+            for (std::size_t i = 0; i < 3; i++) {
+                for (std::size_t j = 0; j < 2; j++) {
+                    if (localPosition[i] == boundary[j]) {
+                        glm::ivec3 neighborPosition = chunkPosition;
+                        neighborPosition[i] += dir[j];
+
+                        Chunk* chunk = world.getChunkAt(neighborPosition);
+                        if (chunk) {
+                            chunk->setDirty(true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main() {
     Log::init();
     Window window(WindowProperties{ "VoxelGame", 1920, 1080 });
     Renderer::init();
 
-    World world{};
-    WorldGenerator worldGenerator{world};
+    GameState state{};
+    state.world.setViewRange(World::CHUNK_SIZE);
+
+    glfwSetWindowUserPointer(window.getNativeWindow(), &state);
+
+    WorldGenerator worldGenerator{state.world};
 
     worldGenerator.enqueue([](WorldGenerator::ChunkQueue& queue) {
         for (int32_t y = -World::CHUNK_SIZE; y <= World::CHUNK_SIZE; y++) {
@@ -136,20 +170,18 @@ int main() {
         }
     });
 
-    world.setViewRange(World::CHUNK_SIZE);
-
     ChunkRenderer chunkRenderer{};
     chunkRenderer.resize(World::CHUNK_SIZE);
 
     Shader shader({
-        { ShaderType::Vertex, vertexShaderSource },
-        { ShaderType::Fragment, fragmentShaderSource },
+        { ShaderType::Vertex, embedView(ShaderFile::defaultVertex) },
+        { ShaderType::Fragment, embedView(ShaderFile::defaultFragment) },
     });
-    shader.bind();
 
     glfwSetCursorPosCallback(window.getNativeWindow(), processMouseInput);
     glfwSetInputMode(window.getNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetScrollCallback(window.getNativeWindow(), processScroll);
+    glfwSetMouseButtonCallback(window.getNativeWindow(), processMouseButton);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -160,35 +192,57 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window.getNativeWindow(), true);
     ImGui_ImplOpenGL3_Init("#version 450");
 
+    constexpr float FPS_UPDATE_PERIOD{0.25f};
+
+    float fps = 0.0f;
+    float nextFpsUpdate = FPS_UPDATE_PERIOD;
+
     float lastFrame = 0.0f;
     while (!window.shouldClose()) {
         float currentFrame = glfwGetTime();
         float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        if (nextFpsUpdate <= 0.0f) {
+            fps = 1.0f / deltaTime;
+            nextFpsUpdate = FPS_UPDATE_PERIOD;
+        } else {
+            nextFpsUpdate -= deltaTime;
+        }
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::SetNextWindowSize(ImVec2(132, 50));
-        ImGui::Begin("Overlay");
-        ImGui::TextUnformatted(std::format("{:.1f} {:.1f} {:.1f}", cameraPosition.x, cameraPosition.y, cameraPosition.z).c_str());
-        ImGui::End();
-
-        Renderer::clear({ 0.1f, 0.1f, 0.1f, 1.0f });
-        //Renderer::draw(*mesh.vertexArray, mesh.indices.size());
-        world.render(chunkRenderer, cameraPosition);
-        chunkRenderer.render();
+        // [= User input =]
 
         int width, height;
         glfwGetFramebufferSize(window.getNativeWindow(), &width, &height);
 
         processInput(window.getNativeWindow(), deltaTime);
-        glm::mat4 view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, cameraUp);
+        glm::mat4 view = glm::lookAt(cameraPosition, cameraPosition + cameraFront, worldUp);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 10000.0f);
         glm::mat4 viewProjection = projection * view;
 
+        // [= Render Scene =]
+
+        Renderer::clear({ 0.1f, 0.1f, 0.1f, 1.0f });
+
+        shader.bind();
         shader.setUniform("uViewProjection", viewProjection);
+
+        state.world.render(chunkRenderer, cameraPosition);
+        chunkRenderer.render();
+        
+        // [= Render UI =]
+
+        ImGui::SetNextWindowSize(ImVec2(132, 100));
+        ImGui::Begin("Overlay");
+        // 1s / fps = deltaTime
+        // fps = 1 / deltaTime
+        ImGui::TextUnformatted(std::format("{:.1f} {:.1f} {:.1f}", cameraPosition.x, cameraPosition.y, cameraPosition.z).c_str());
+        ImGui::TextUnformatted(std::format("FPS: {}", fps).c_str());
+        ImGui::End();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
