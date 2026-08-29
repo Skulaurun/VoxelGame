@@ -8,12 +8,15 @@ static GLenum getEnum(const ShaderType& type) {
 	switch (type) {
 		case ShaderType::Vertex: return GL_VERTEX_SHADER;
 		case ShaderType::Fragment: return GL_FRAGMENT_SHADER;
+		case ShaderType::Compute: return GL_COMPUTE_SHADER;
 		default: return GL_NONE;
 	}
 }
 
 Shader::Shader(const std::vector<ShaderSource>& sources) {
 	id = glCreateProgram();
+
+	bool hasError = false;
 
 	std::vector<uint32_t> shaders = {};
 	shaders.reserve(sources.size());
@@ -22,10 +25,18 @@ Shader::Shader(const std::vector<ShaderSource>& sources) {
 		shaders.emplace_back(shader);
 
 		const char* data = source.text.data();
-		glShaderSource(shader, 1, &data, NULL);
+		GLint length = static_cast<GLint>(source.text.size());
+		glShaderSource(shader, 1, &data, &length);
 
-		compileShader(shader);
+		if (!compileShader(shader)) {
+			hasError = true;
+			continue;
+		}
 		glAttachShader(id, shader);
+	}
+
+	if (hasError) {
+		return;
 	}
 
 	glLinkProgram(id);
@@ -33,16 +44,23 @@ Shader::Shader(const std::vector<ShaderSource>& sources) {
 	int32_t result;
 	glGetProgramiv(id, GL_LINK_STATUS, &result);
 	if (result == GL_FALSE) {
-		LOG_CORE_ERROR("Failed to link Shader program");
+		int32_t length;
+		glGetProgramiv(id, GL_INFO_LOG_LENGTH, &length);
+
+		std::string info(static_cast<std::string::size_type>(length - 1), '\0');
+		glGetProgramInfoLog(id, length, NULL, info.data());
+
+		LOG_CORE_ERROR("Failed to link Shader program: \n{}", info);
 	}
 
 	for (const auto& shader : shaders) glDeleteShader(shader);
 }
+
 Shader::~Shader() {
 	glDeleteProgram(id);
 }
 
-void Shader::compileShader(const uint32_t shader) const {
+bool Shader::compileShader(const uint32_t shader) const {
 	glCompileShader(shader);
 
 	int32_t result;
@@ -55,8 +73,12 @@ void Shader::compileShader(const uint32_t shader) const {
 		glGetShaderInfoLog(shader, length, NULL, info.data());
 
 		LOG_CORE_ERROR(info);
+		return false;
 	}
+
+	return true;
 }
+
 int32_t Shader::getUniformLocation(std::string_view name) {
 	const auto& iterator = uniformLocationCache.find(name);
 	if (iterator != uniformLocationCache.end()) {
@@ -71,6 +93,7 @@ int32_t Shader::getUniformLocation(std::string_view name) {
 void Shader::bind() const {
 	glUseProgram(id);
 }
+
 void Shader::unbind() const {
 	glUseProgram(0);
 }
@@ -78,6 +101,7 @@ void Shader::unbind() const {
 void Shader::setUniform(std::string_view name, const int value) {
 	glUniform1i(getUniformLocation(name), value);
 }
+
 void Shader::setUniform(std::string_view name, const float value) {
 	glUniform1f(getUniformLocation(name), value);
 }
@@ -85,9 +109,11 @@ void Shader::setUniform(std::string_view name, const float value) {
 void Shader::setUniform(std::string_view name, const glm::vec2& value) {
 	glUniform2fv(getUniformLocation(name), 1, glm::value_ptr(value));
 }
+
 void Shader::setUniform(std::string_view name, const glm::vec3& value) {
 	glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(value));
 }
+
 void Shader::setUniform(std::string_view name, const glm::vec4& value) {
 	glUniform4fv(getUniformLocation(name), 1, glm::value_ptr(value));
 }
@@ -95,9 +121,11 @@ void Shader::setUniform(std::string_view name, const glm::vec4& value) {
 void Shader::setUniform(std::string_view name, const glm::mat2& value) {
 	glUniformMatrix2fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value));
 }
+
 void Shader::setUniform(std::string_view name, const glm::mat3& value) {
 	glUniformMatrix3fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value));
 }
+
 void Shader::setUniform(std::string_view name, const glm::mat4& value) {
 	glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value));
 }

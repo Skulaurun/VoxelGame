@@ -11,7 +11,7 @@
 #include <unordered_map>
 
 enum class ShaderType : uint8_t {
-	Vertex, Fragment
+	Vertex, Fragment, Compute
 };
 
 struct ShaderSource {
@@ -41,7 +41,7 @@ public:
 
 private:
 	int32_t getUniformLocation(std::string_view name);
-	void compileShader(uint32_t shader) const;
+	bool compileShader(uint32_t shader) const;
 
 private:
 	int32_t id;
