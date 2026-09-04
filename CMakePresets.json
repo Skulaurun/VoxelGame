@@ -40,6 +40,26 @@
           "hostOS": [ "Windows" ]
         }
       }
+    },
+    {
+      "name": "windows-release-debug",
+      "displayName": "Windows x64 Release Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [ "Windows" ]
+        }
+      }
     }
   ],
   "buildPresets": [
@@ -52,6 +72,11 @@
       "name": "windows-release",
       "displayName": "Windows x64 Release",
       "configurePreset": "windows-release"
+    },
+    {
+      "name": "windows-release-debug",
+      "displayName": "Windows x64 Release Debug",
+      "configurePreset": "windows-release-debug"
     }
   ]
 }

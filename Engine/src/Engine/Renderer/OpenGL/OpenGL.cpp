@@ -24,7 +24,8 @@ void messageCallback(
 }
 
 void OpenGL::init() {
-    gladLoadGL(glfwGetProcAddress);
+    int version = gladLoadGL(glfwGetProcAddress);
+    assert(version != 0);
 
     glDebugMessageCallback(messageCallback, nullptr);
 

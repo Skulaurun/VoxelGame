@@ -22,6 +22,33 @@ void WorldGenerator::enqueue(const glm::vec3& coord) {
     m_workAvailable.notify_one();
 }
 
+float density(const glm::vec3& worldPosition) {
+    const float scale = 0.05f;
+    float baseHeight = 48.0f + perlinNoise(glm::vec2{worldPosition.x, worldPosition.z} * scale) * 32.0f;
+    float bias = -1.0f + (worldPosition.y / baseHeight) * 2.0f;
+
+    return perlinNoise(worldPosition * scale) - bias;
+}
+
+void WorldGenerator::generate(Chunk& chunk) {
+    for (int32_t y = 0; y < Chunk::SIZE; y++) {
+        for (int32_t x = 0; x < Chunk::SIZE; x++) {
+            for (int32_t z = 0; z < Chunk::SIZE; z++) {
+                glm::ivec3 worldPosition = chunk.toWorldPosition({x, y, z});
+                if (density(worldPosition) > 0.0f) {
+                    BlockType type = BlockType::Stone;
+
+                    if (density(worldPosition + glm::ivec3{0, 1, 0}) <= 0.0f) {
+                        type = BlockType::Grass;
+                    }
+
+                    chunk.at({x, y, z})->setType(type);
+                }
+            }
+        }
+    }
+}
+
 void WorldGenerator::doWork() {
     while (m_running.load()) {
         ZoneScoped;
@@ -40,23 +67,7 @@ void WorldGenerator::doWork() {
         m_workAvailable.notify_one();
     
         auto chunk = std::make_unique<Chunk>(m_world, coord);
-        for (int32_t y = 0; y < Chunk::SIZE; y++) {
-            for (int32_t x = 0; x < Chunk::SIZE; x++) {
-                for (int32_t z = 0; z < Chunk::SIZE; z++) {
-                    glm::vec3 worldPosition = chunk->toWorldPosition({x, y, z});
-    
-                    const float scale = 0.05f;
-                    float baseHeight = 48.0f + perlinNoise(glm::vec2{worldPosition.x, worldPosition.z} * scale) * 32.0f;
-                    float bias = -1.0f + (worldPosition.y / baseHeight) * 2.0f;
-    
-                    float density = perlinNoise(worldPosition * scale) - bias;
-                    if (density > 0.0f) {
-                        chunk->at({x, y, z})->setType(BlockType::Stone);
-                    }
-                }
-            }
-        }
-    
+        generate(*chunk);
         m_world.setChunk(std::move(chunk));
     }
 }

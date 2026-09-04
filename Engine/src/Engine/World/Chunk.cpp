@@ -150,7 +150,7 @@ void Chunk::generateMesh(glm::vec3 offset) {
                             position += glm::ivec3(x - 1, y - 1, z - 1);
                             position += offset;
                             
-                            glm::vec3 signs = glm::sign(Voxel::FACES[i * 4 + j]);
+                            glm::vec3 signs = glm::sign(Voxel::FACES[i * 4 + j] - 0.5f);
                             glm::vec3 normal = Voxel::VERTEX_NORMALS[i * 4 + j];
 
                             auto corners = std::to_array<glm::vec3>({
@@ -183,7 +183,12 @@ void Chunk::generateMesh(glm::vec3 offset) {
                                 !tempAt(x + corners[0].x, y + corners[0].y, z + corners[0].z)->isTransparent()
                             );
 
-                            mesh.vertices.emplace_back(Vertex{ position, { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2{}, 0.0f, ao });
+                            glm::vec4 color{ 0.5f, 0.5f, 0.5f, 1.0f };
+                            if (voxel->is(BlockType::Grass)) {
+                                color = { 0.2f, 0.85f, 0.25f, 1.0f };
+                            }
+
+                            mesh.vertices.emplace_back(Vertex{ position, color, glm::vec2{}, 0.0f, ao });
                         }
                         quadCount++;
                     }

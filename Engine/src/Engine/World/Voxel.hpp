@@ -13,42 +13,44 @@ enum class BlockType {
 class Voxel {
 
 public:
+    // TODO: Figure out winding
+
     constexpr static std::array<glm::vec3, 6 * 4> FACES{{
         // LEFT
-        { -0.5f, -0.5f, 0.5f },
-        { -0.5f, -0.5f, -0.5f },
-        { -0.5f, 0.5f, -0.5f },
-        { -0.5f, 0.5f, 0.5f },
+        { 0.0f, 0.0f, 1.0f },
+        { 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f },
+        { 0.0f, 1.0f, 1.0f },
 
         // RIGHT
-        { 0.5f, -0.5f, 0.5f },
-        { 0.5f, -0.5f, -0.5f },
-        { 0.5f, 0.5f, -0.5f },
-        { 0.5f, 0.5f, 0.5f },
+        { 1.0f, 0.0f, 1.0f },
+        { 1.0f, 0.0f, 0.0f },
+        { 1.0f, 1.0f, 0.0f },
+        { 1.0f, 1.0f, 1.0f },
 
         // FRONT
-        { -0.5f, -0.5f, 0.5f },
-        { 0.5f, -0.5f, 0.5f },
-        { 0.5f, 0.5f, 0.5f },
-        { -0.5f, 0.5f, 0.5f },
+        { 0.0f, 0.0f, 1.0f },
+        { 1.0f, 0.0f, 1.0f },
+        { 1.0f, 1.0f, 1.0f },
+        { 0.0f, 1.0f, 1.0f },
 
         // BACK
-        { -0.5f, -0.5f, -0.5f },
-        { 0.5f, -0.5f, -0.5f },
-        { 0.5f, 0.5f, -0.5f },
-        { -0.5f, 0.5f, -0.5f },
+        { 0.0f, 0.0f, 0.0f },
+        { 1.0f, 0.0f, 0.0f },
+        { 1.0f, 1.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f },
 
         // TOP
-        { 0.5f, 0.5f, 0.5f },
-        { -0.5f, 0.5f, 0.5f },
-        { -0.5f, 0.5f, -0.5f },
-        { 0.5f, 0.5f, -0.5f },
+        { 1.0f, 1.0f, 1.0f },
+        { 0.0f, 1.0f, 1.0f },
+        { 0.0f, 1.0f, 0.0f },
+        { 1.0f, 1.0f, 0.0f },
 
         // BOTTOM
-        { 0.5f, -0.5f, 0.5f },
-        { -0.5f, -0.5f, 0.5f },
-        { -0.5f, -0.5f, -0.5f },
-        { 0.5f, -0.5f, -0.5f }
+        { 1.0f, 0.0f, 1.0f },
+        { 0.0f, 0.0f, 1.0f },
+        { 0.0f, 0.0f, 0.0f },
+        { 1.0f, 0.0f, 0.0f }
     }};
 
     constexpr static std::array<glm::vec3, 6 * 4> VERTEX_NORMALS{{
@@ -90,13 +92,15 @@ public:
     }};
 
 public:
-    Voxel() : type(BlockType::Void) {}
+    Voxel() : m_type(BlockType::Void) {}
 
-    void setType(BlockType type) { this->type = type; }
+    void setType(BlockType type) { m_type = type; }
 
-    bool isTransparent() const { return type == BlockType::Void; }
+    bool isTransparent() const { return m_type == BlockType::Void; }
+
+    bool is(BlockType type) const { return type == m_type; }
 
 private:
-    BlockType type;
+    BlockType m_type;
 
 };

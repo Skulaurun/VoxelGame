@@ -8,7 +8,7 @@
 #include <Engine/Renderer/OpenGL/Texture.hpp>
 
 #include <Engine/World/World.hpp>
-#include <Engine/World/WorldGenerator.hpp>
+#include <Engine/World/ChunkManager.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -49,9 +49,9 @@ struct GameState {
     World world;
 };
 
-glm::vec3 cameraPosition = glm::vec3(0.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPosition = glm::vec3{0.0f};
+glm::vec3 cameraFront = glm::vec3{0.0f, 0.0f, -1.0f};
+glm::vec3 worldUp = glm::vec3{0.0f, 1.0f, 0.0f};
 // cameraDir
 
 float yaw = -90.0f;
@@ -156,14 +156,14 @@ int main() {
     GameState state{};
     state.world.setViewRange(World::CHUNK_SIZE);
 
+    ChunkManager& chunkManager = state.world.chunkManager();
+
     glfwSetWindowUserPointer(window.getNativeWindow(), &state);
 
-    WorldGenerator worldGenerator{state.world};
-
-    worldGenerator.enqueue([](WorldGenerator::ChunkQueue& queue) {
-        for (int32_t y = -World::CHUNK_SIZE; y <= World::CHUNK_SIZE; y++) {
-            for (int32_t x = -World::CHUNK_SIZE; x <= World::CHUNK_SIZE; x++) {
-                for (int32_t z = -World::CHUNK_SIZE; z <= World::CHUNK_SIZE; z++) {
+    state.world.generator().enqueue([](WorldGenerator::ChunkQueue& queue) {
+        for (int32_t y = -World::CHUNK_SIZE; y < World::CHUNK_SIZE; y++) {
+            for (int32_t x = -World::CHUNK_SIZE; x < World::CHUNK_SIZE; x++) {
+                for (int32_t z = -World::CHUNK_SIZE; z < World::CHUNK_SIZE; z++) {
                     queue.emplace_back(x, y, z);
                 }
             }
@@ -226,12 +226,38 @@ int main() {
 
         // [= Render Scene =]
 
-        Renderer::clear({ 0.1f, 0.1f, 0.1f, 1.0f });
+        Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
 
         shader.bind();
         shader.setUniform("uViewProjection", viewProjection);
 
-        state.world.render(chunkRenderer, cameraPosition);
+        chunkManager.update(cameraPosition);
+
+        const auto& loadedChunks = chunkManager.loadedChunks();
+
+        for (const auto& chunkEvent : chunkManager.chunkEvents()) {
+            if (chunkEvent.type == ChunkManager::Event::Type::Load) {
+                Chunk* chunk = loadedChunks[chunkEvent.id].chunk;
+                if (chunk->getMesh().indices.size() == 0) {
+                    chunk->generateMesh(chunk->getPosition() * Chunk::SIZE);
+                }
+                chunkRenderer.uploadMesh(chunk->getMesh(), chunkEvent.id);
+            } else if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
+                chunkRenderer.setEnabled(chunkEvent.id, false);
+            }
+        }
+
+        for (const auto& chunkRef : loadedChunks) {
+            if (chunkRef.isOccupied() && chunkRef.chunk->isDirty()) {
+                // Update chunk
+                Chunk* chunk = chunkRef.chunk;
+                chunk->generateMesh(chunk->getPosition() * Chunk::SIZE);
+                chunk->setDirty(false);
+
+                chunkRenderer.uploadMesh(chunk->getMesh(), chunkRef.index);
+            }
+        }
+
         chunkRenderer.render();
         
         // [= Render UI =]

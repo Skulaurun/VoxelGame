@@ -25,5 +25,17 @@
             "stopAtEntry": false,
             "console": "integratedTerminal"
         },
+        {
+            "name": "(Windows) Game: Release Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "preLaunchTask": "(Windows) Build: Release Debug",
+            "program": "${workspaceFolder}/build/windows-release-debug/Game/bin/VoxelGame.exe",
+            "cwd": "${workspaceFolder}/build/windows-release-debug/Game/bin",
+            "args": [],
+            "environment": [],
+            "stopAtEntry": false,
+            "console": "integratedTerminal"
+        }
     ]
 }

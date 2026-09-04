@@ -32,5 +32,20 @@
 			},
 			"problemMatcher": []
 		},
+		{
+			"type": "cmake",
+			"label": "(Windows) Build: Release Debug",
+			"command": "build",
+			"preset": "windows-release-debug",
+			"group": {
+				"kind": "build"
+			},
+			"options": {
+				"environment": {
+					"CLICOLOR_FORCE": "1"
+				}
+			},
+			"problemMatcher": []
+		}
 	]
 }

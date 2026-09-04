@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Engine/World/Chunk.hpp>
+#include <Engine/World/ChunkManager.hpp>
+#include <Engine/World/WorldGenerator.hpp>
 
 #include <tracy/Tracy.hpp>
 
@@ -20,7 +22,9 @@ public:
     constexpr static int32_t CHUNK_SIZE = 8;
 
 public:
-    void render(ChunkRenderer& renderer, const glm::vec3& playerPosition);
+    World();
+
+    //void render(ChunkRenderer& renderer, const glm::vec3& playerPosition);
 
     glm::ivec3 castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
 
@@ -33,16 +37,23 @@ public:
 
     Voxel* getVoxelAt(glm::ivec3 worldPosition);
 
+    auto viewRange() const { return m_viewRange; }
+
+    ChunkManager& chunkManager() { return m_chunkManager; }
+    WorldGenerator& generator() { return m_generator; }
+
     static glm::ivec3 toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelPosition);
     static glm::ivec3 toChunkPosition(glm::ivec3 worldPosition);
     static glm::ivec3 toLocalPosition(glm::ivec3 worldPosition);
 
 private:
-    std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>> chunks;
-    std::vector<Chunk*> loadedChunks;
-    std::deque<Chunk*> chunksToUpdate;
+    std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>> m_chunks;
+    //std::vector<Chunk*> loadedChunks;
 
-    uint32_t viewRange;
+    ChunkManager m_chunkManager;
+    WorldGenerator m_generator;
+
+    uint32_t m_viewRange;
 
     mutable TracyLockable(std::mutex, m_mtxChunks);
 

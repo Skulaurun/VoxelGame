@@ -17,6 +17,7 @@
 #endif
 
 class World;
+class Chunk;
 
 class WorldGenerator {
 
@@ -37,6 +38,7 @@ public:
 
 private:
     void doWork();
+    void generate(Chunk& chunk);
 
 private:
     World& m_world;

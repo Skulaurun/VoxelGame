@@ -8,7 +8,8 @@ uint32_t Window::windowCount = 0;
 
 Window::Window(const WindowProperties& properties) {
     if (windowCount == 0) {
-        assert(glfwInit());
+        int result = glfwInit();
+        assert(result && "Could not initialize GLFW");
     }
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
