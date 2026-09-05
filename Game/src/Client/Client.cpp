@@ -1,0 +1,285 @@
+#include "Client.hpp"
+#include "../ShaderFile.hpp"
+
+#include <GLFW/glfw3.h>
+
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
+#include <tracy/Tracy.hpp>
+
+#include <format>
+
+constexpr glm::ivec2 DEFAULT_WINDOW_SIZE{ 1920, 1080 };
+
+constexpr float FOV_Y = 45.0f;
+
+Client::Client() :
+    m_window{WindowProperties{ "VoxelGame", DEFAULT_WINDOW_SIZE.x, DEFAULT_WINDOW_SIZE.y }},
+    m_camera{FOV_Y, DEFAULT_WINDOW_SIZE.x / static_cast<float>(DEFAULT_WINDOW_SIZE.y), 0.1f, 10000.0f},
+
+    m_cameraSpeed{10.0f},
+    m_yaw{-90.0f},
+    m_pitch{0.0f},
+
+    m_fps{0.0f}
+{
+    // GLFW init
+
+    GLFWwindow* window = m_window.nativeWindow();
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    glfwSetCursorPosCallback(window, [](GLFWwindow* window, double x, double y) {
+        Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
+        client.onCursorPosition(window, x, y);
+    });
+    glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) {
+        Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
+        client.onMouseScroll(window, xoffset, yoffset);
+    });
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {
+        Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
+        client.onMouseButton(window, button, action, mods);
+    });
+    glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+        Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
+        client.onFrameBufferSize(window, width, height);
+    });
+
+    // Renderer init
+
+    Renderer::init();
+
+    m_chunkRenderer.resize(World::CHUNK_SIZE);
+
+    m_defaultShader = std::make_unique<Shader>(std::vector<ShaderSource>{
+        { ShaderType::Vertex, embedView(ShaderFile::defaultVertex) },
+        { ShaderType::Fragment, embedView(ShaderFile::defaultFragment) },
+    });
+
+    // ImGui init
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    //ImGuiIO& io = ImGui::GetIO();
+
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 450");
+
+    // Server init
+
+    m_world.setViewRange(World::CHUNK_SIZE);
+    m_world.generator().enqueue([&](WorldGenerator::ChunkQueue& queue) {
+        for (int32_t y = -World::CHUNK_SIZE; y < World::CHUNK_SIZE; y++) {
+            for (int32_t x = -World::CHUNK_SIZE; x < World::CHUNK_SIZE; x++) {
+                for (int32_t z = -World::CHUNK_SIZE; z < World::CHUNK_SIZE; z++) {
+                    queue.emplace_back(x, y, z);
+                    m_world.chunkManager().addChunkInGeneration({x, y, z});
+                }
+            }
+        }
+    });
+}
+
+Client::~Client() {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+
+void Client::onFrameBufferSize(GLFWwindow* window, int width, int height) {
+    //glViewport(0, 0, width, height);
+
+    m_camera.setAspectRatio(width / static_cast<float>(height));
+}
+
+void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        glm::ivec3 blockPosition = m_world.castRay(m_camera.position(), m_camera.direction(), 10.0f);
+        Voxel* voxel = m_world.getVoxelAt(blockPosition);
+        if (voxel) {
+            voxel->setType(BlockType::Void);
+
+            glm::ivec3 localPosition = World::toLocalPosition(blockPosition);
+            glm::ivec3 chunkPosition = World::toChunkPosition(blockPosition);
+
+            Chunk* chunk = m_world.getChunkAt(chunkPosition);
+            if (chunk) {
+                chunk->setDirty(true);
+            }
+
+            int dir[] = {-1, 1};
+            int boundary[] = {0, Chunk::SIZE - 1};
+
+            for (std::size_t i = 0; i < 3; i++) {
+                for (std::size_t j = 0; j < 2; j++) {
+                    if (localPosition[i] == boundary[j]) {
+                        glm::ivec3 neighborPosition = chunkPosition;
+                        neighborPosition[i] += dir[j];
+
+                        Chunk* chunk = m_world.getChunkAt(neighborPosition);
+                        if (chunk) {
+                            chunk->setDirty(true);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Client::onMouseScroll(GLFWwindow* window, double xoffset, double yoffset) {
+    m_cameraSpeed += yoffset;
+}
+
+void Client::onCursorPosition(GLFWwindow* window, double x, double y) {
+    static float lastX = x;
+    static float lastY = y;
+
+    float xOffset = x - lastX;
+    float yOffset = lastY - y;
+    lastX = x;
+    lastY = y;
+
+    constexpr float sensitivity = 0.1f;
+    xOffset *= sensitivity;
+    yOffset *= sensitivity;
+
+    m_yaw = glm::mod(m_yaw + xOffset, 360.0f);
+    m_pitch += yOffset;
+
+    if (m_pitch > 89.0f) {
+        m_pitch = 89.0f;
+    }
+    if (m_pitch < -89.0f) {
+        m_pitch = -89.0f;
+    }
+
+    m_camera.setDirection(
+        glm::normalize(toCartesian(glm::radians(m_pitch), glm::radians(m_yaw)))
+    );
+}
+
+void Client::processInput(GLFWwindow* window, const float dt) {
+    float speed = m_cameraSpeed * dt;
+
+    WorldPosition position = m_camera.position();
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        position += speed * m_camera.direction();
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        position -= speed * m_camera.direction();
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        position += speed * glm::normalize(glm::cross(WORLD_UP, m_camera.direction()));
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        position += speed * glm::normalize(glm::cross(m_camera.direction(), WORLD_UP));
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        position += speed * WORLD_UP;
+    }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        position -= speed * WORLD_UP;
+    }
+    m_camera.setPosition(position);
+}
+
+void Client::update(const float dt) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // [= User input =]
+
+    processInput(m_window.nativeWindow(), dt);
+
+    // [= Render Scene =]
+
+    Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
+
+    m_defaultShader->bind();
+    m_defaultShader->setUniform("uViewProjection", m_camera.viewProjection());
+
+    ChunkManager& chunkManager = m_world.chunkManager();
+
+    chunkManager.update(m_camera.position());
+
+    {
+    ZoneScopedN("Process loaded chunks");
+
+    const auto& loadedChunks = chunkManager.loadedChunks();
+
+    for (const auto& chunkEvent : chunkManager.chunkEvents()) {
+        if (chunkEvent.type == ChunkManager::Event::Type::Load) {
+            Chunk* chunk = loadedChunks[chunkEvent.id].chunk;
+            if (chunk->mesh().indices.size() == 0) {
+                chunk->generateMesh(chunk->position() * Chunk::SIZE);
+            }
+            m_chunkRenderer.uploadMesh(chunk->mesh(), chunkEvent.id);
+        } else if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
+            m_chunkRenderer.setEnabled(chunkEvent.id, false);
+        }
+    }
+
+    for (const auto& chunkRef : loadedChunks) {
+        if (chunkRef.isOccupied() && chunkRef.chunk->isDirty()) {
+            // Update chunk
+            Chunk* chunk = chunkRef.chunk;
+            chunk->generateMesh(chunk->position() * Chunk::SIZE);
+            chunk->setDirty(false);
+
+            m_chunkRenderer.uploadMesh(chunk->mesh(), chunkRef.index);
+        }
+    }
+    }
+
+    m_chunkRenderer.render(m_frustum);
+    
+    // [= Render UI =]
+
+    ImGui::SetNextWindowSize(ImVec2(132, 100));
+    ImGui::Begin("Overlay");
+    // 1s / fps = deltaTime
+    // fps = 1 / deltaTime
+    ImGui::TextUnformatted(
+        std::format("{:.1f} {:.1f} {:.1f}", m_camera.position().x, m_camera.position().y, m_camera.position().z).c_str()
+    );
+    ImGui::TextUnformatted(
+        std::format("FPS: {}", m_fps).c_str()
+    );
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    m_window.display();
+    FrameMark;
+}
+
+void Client::run() {
+    constexpr float FPS_UPDATE_PERIOD{0.25f};
+
+    float nextFpsUpdate = FPS_UPDATE_PERIOD;
+
+    float lastFrame = 0.0f;
+    while (isRunning()) {
+        float currentFrame = glfwGetTime();
+        float deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        if (nextFpsUpdate <= 0.0f) {
+            m_fps = 1.0f / deltaTime;
+            nextFpsUpdate = FPS_UPDATE_PERIOD;
+        } else {
+            nextFpsUpdate -= deltaTime;
+        }
+
+        update(deltaTime);        
+    }
+}

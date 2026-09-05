@@ -4,11 +4,11 @@
 
 #include <tracy/Tracy.hpp>
 
-Chunk::Chunk(World& world, glm::ivec3 position)
-    : world{world}, position{position}, m_dirty{false} {}
+Chunk::Chunk(World& m_world, glm::ivec3 position)
+    : m_world{m_world}, m_position{position}, m_dirty{false} {}
 
-glm::ivec3 Chunk::toWorldPosition(glm::ivec3 voxelPosition) {
-    return world.toWorldPosition(position, voxelPosition);
+glm::ivec3 Chunk::toWorldPosition(glm::ivec3 voxelPosition) const {
+    return m_world.toWorldPosition(m_position, voxelPosition);
 }
 
 void Chunk::generateMesh(glm::vec3 offset) {
@@ -41,17 +41,17 @@ void Chunk::generateMesh(glm::vec3 offset) {
     // TODO: Do axes matter? (switching + and - didn't do a thing?)
     std::array<Chunk*, 7> chunks = {
         // left
-        world.getChunkAt(position + glm::ivec3(-1, 0, 0)),
+        m_world.getChunkAt(m_position + glm::ivec3(-1, 0, 0)),
         // right
-        world.getChunkAt(position + glm::ivec3(1, 0, 0)),
+        m_world.getChunkAt(m_position + glm::ivec3(1, 0, 0)),
         // front
-        world.getChunkAt(position + glm::ivec3(0, 0, 1)),
+        m_world.getChunkAt(m_position + glm::ivec3(0, 0, 1)),
         // back
-        world.getChunkAt(position + glm::ivec3(0, 0, -1)),
+        m_world.getChunkAt(m_position + glm::ivec3(0, 0, -1)),
         // top
-        world.getChunkAt(position + glm::ivec3(0, 1, 0)),
+        m_world.getChunkAt(m_position + glm::ivec3(0, 1, 0)),
         // bottom
-        world.getChunkAt(position + glm::ivec3(0, -1, 0))
+        m_world.getChunkAt(m_position + glm::ivec3(0, -1, 0))
     };
 
     // X Axis
@@ -105,7 +105,7 @@ void Chunk::generateMesh(glm::vec3 offset) {
     for (std::size_t i = 0; i < SIZE; i++) {
         for (std::size_t j = 0; j < SIZE; j++) {
             for (std::size_t k = 0; k < SIZE; k++) {
-                temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1) * TEMP_SIZE + (k + 1)] = voxels[i * SIZE * SIZE + j * SIZE + k];
+                temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1) * TEMP_SIZE + (k + 1)] = m_voxels[i * SIZE * SIZE + j * SIZE + k];
             }
         }
     }
@@ -114,8 +114,8 @@ void Chunk::generateMesh(glm::vec3 offset) {
     {
     ZoneScopedN("Meshgen");
 
-    mesh.indices.clear();
-    mesh.vertices.clear();
+    m_mesh.indices.clear();
+    m_mesh.vertices.clear();
 
     constexpr std::array<glm::vec4, 4> COLORS{{
         { 1.0f, 1.0f, 0.0f, 1.0f },
@@ -188,7 +188,7 @@ void Chunk::generateMesh(glm::vec3 offset) {
                                 color = { 0.2f, 0.85f, 0.25f, 1.0f };
                             }
 
-                            mesh.vertices.emplace_back(Vertex{ position, color, glm::vec2{}, 0.0f, ao });
+                            m_mesh.vertices.emplace_back(Vertex{ position, color, glm::vec2{}, 0.0f, ao });
                         }
                         quadCount++;
                     }
@@ -197,7 +197,7 @@ void Chunk::generateMesh(glm::vec3 offset) {
         }
     }
 
-    generateQuadIndices(mesh, quadCount);
+    generateQuadIndices(m_mesh, quadCount);
 
     }
 }

@@ -20,7 +20,7 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
 
     for (std::size_t i = 0; i < m_loadedChunks.size(); i++) {
         if (m_loadedChunks[i].isOccupied()) {
-            if (!isInViewRange(m_loadedChunks[i].chunk->getPosition())) {
+            if (!isInViewRange(m_loadedChunks[i].chunk->position())) {
                 // Deactivate
                 m_loadedChunks[i] = Slot{ 0, nullptr };
                 m_chunkEvents.emplace_back(i, Event::Type::Unload);

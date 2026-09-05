@@ -8,12 +8,12 @@
 
 #include <tracy/Tracy.hpp>
 
-void ChunkRenderer::render() {
+void ChunkRenderer::render(const Frustum& frustum) {
     ZoneScoped;
 
     for (const auto& renderable : renderables) {
         // TODO: Prevent empty drawcalls (with index count == 0)
-        if (renderable.enabled) {
+        if (renderable.enabled && renderable.indexCount != 0) {
             Renderer::draw(*renderable.vertexArray, renderable.indexCount);
         }
     }
@@ -21,6 +21,10 @@ void ChunkRenderer::render() {
 
 void ChunkRenderer::uploadMesh(const Mesh& mesh, std::size_t index) {
     ZoneScoped;
+
+    if (mesh.indices.empty()) {
+        return;
+    }
 
     auto vertexArray = renderables[index].vertexArray;
     vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));

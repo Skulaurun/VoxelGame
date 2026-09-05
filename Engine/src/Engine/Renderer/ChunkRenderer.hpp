@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Engine/Renderer/Frustum.hpp>
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
@@ -20,7 +21,7 @@ public:
 
     ChunkRenderer() = default;
 
-    void render();
+    void render(const Frustum& frustum);
     void uploadMesh(const Mesh& mesh, std::size_t index);
 
     void setEnabled(std::size_t index, bool value);

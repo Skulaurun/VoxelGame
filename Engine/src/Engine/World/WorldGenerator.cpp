@@ -51,7 +51,7 @@ void WorldGenerator::generate(Chunk& chunk) {
 
 void WorldGenerator::doWork() {
     while (m_running.load()) {
-        ZoneScoped;
+        //ZoneScoped;
 
         glm::vec3 coord{};
         {

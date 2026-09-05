@@ -5,6 +5,8 @@
 
 #include <Engine/Renderer/Renderer.hpp>
 
+#include <Engine/Core/Math.hpp>
+
 #include <glm/glm.hpp>
 
 #include <array>
@@ -21,7 +23,9 @@ public:
 public:
     Chunk(World& world, glm::ivec3 position);
 
-    void unload();
+    void generateMesh(glm::vec3 offset);
+
+    void setDirty(bool dirty) { m_dirty = dirty; }
 
     Voxel* at(glm::ivec3 localPosition) {
         if (localPosition.y >= SIZE || localPosition.y < 0) {
@@ -37,25 +41,28 @@ public:
             + localPosition.x * SIZE
             + localPosition.z;
 
-        return &voxels[i];
+        return &m_voxels[i];
     }
 
-    glm::ivec3 toWorldPosition(glm::ivec3 voxelPosition);
+    auto box() const -> Box3 {
+        return {
+            toWorldPosition({0, 0, 0}),
+            toWorldPosition({SIZE, SIZE, SIZE})
+        };
+    }
 
-    void generateMesh(glm::vec3 offset);
+    auto toWorldPosition(glm::ivec3 voxelPosition) const -> glm::ivec3;
 
-    void setDirty(bool dirty) { m_dirty = dirty; }
-
-    bool isDirty() const { return m_dirty; }
-    glm::ivec3 getPosition() { return position; }
-    const Mesh& getMesh() const { return mesh; }
+    auto isDirty() const { return m_dirty; }
+    auto position() const { return m_position; }
+    auto mesh() const -> const auto& { return m_mesh; }
 
 private:
-    World& world;
+    World& m_world;
 
-    glm::ivec3 position;
-    std::array<Voxel, CUBIC_SIZE> voxels;
-    Mesh mesh;
+    glm::ivec3 m_position;
+    std::array<Voxel, CUBIC_SIZE> m_voxels;
+    Mesh m_mesh;
     bool m_dirty;
 
 };

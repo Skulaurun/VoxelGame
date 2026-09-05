@@ -12,7 +12,6 @@
 
 #include <memory>
 #include <unordered_map>
-#include <deque>
 
 class ChunkRenderer;
 
@@ -24,7 +23,11 @@ public:
 public:
     World();
 
-    //void render(ChunkRenderer& renderer, const glm::vec3& playerPosition);
+    World(World&&) = delete;
+    World(const World&) = delete;
+
+    World& operator=(World&&) = delete;
+    World& operator=(const World&) = delete;
 
     glm::ivec3 castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
 
@@ -48,7 +51,6 @@ public:
 
 private:
     std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>> m_chunks;
-    //std::vector<Chunk*> loadedChunks;
 
     ChunkManager m_chunkManager;
     WorldGenerator m_generator;

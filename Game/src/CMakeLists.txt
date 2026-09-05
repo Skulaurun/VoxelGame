@@ -1,4 +1,6 @@
 add_executable(VoxelGame
+    "Client/Client.cpp"
+
     "Main.cpp"
 )
 

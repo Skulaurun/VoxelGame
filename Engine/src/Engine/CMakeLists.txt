@@ -10,6 +10,7 @@ add_library(VoxelEngine
     "Renderer/OpenGL/VertexArray.cpp"
     "Renderer/Renderer.cpp"
     "Renderer/ChunkRenderer.cpp"
+    "Renderer/PerspectiveCamera.cpp"
 
     "World/Voxel.cpp"
     "World/Chunk.cpp"

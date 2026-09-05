@@ -37,6 +37,11 @@ public:
         m_loadedChunks.resize(newSize, Slot{0, nullptr});
     }
 
+    // FIXME:
+    void addChunkInGeneration(const glm::ivec3& coord) {
+        m_chunksInGeneration.emplace(coord);
+    }
+
     const auto& loadedChunks() const { return m_loadedChunks; }
     const auto& chunkEvents() const { return m_chunkEvents; }
 

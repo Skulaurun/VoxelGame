@@ -42,7 +42,7 @@ public:
     void setTitle(std::string_view title);
     std::string_view getTitle() const { return title; }
 
-    GLFWwindow* getNativeWindow() { return window; }
+    GLFWwindow* nativeWindow() { return window; }
 
 private:
     GLFWwindow* window;

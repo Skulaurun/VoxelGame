@@ -2,7 +2,10 @@
 
 #include <tracy/Tracy.hpp>
 
-World::World() : m_generator{*this}, m_chunkManager{*this} {}
+World::World() :
+    m_generator{*this},
+    m_chunkManager{*this}
+{}
 
 glm::ivec3 World::castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
     for (float i = 0.0f; i < maxDistance; i += 0.1f) {
@@ -26,7 +29,7 @@ void World::setViewRange(uint32_t viewRange) {
 
 void World::setChunk(std::unique_ptr<Chunk> chunk) {
     std::scoped_lock lock{m_mtxChunks};
-    m_chunks[chunk->getPosition()] = std::move(chunk);
+    m_chunks[chunk->position()] = std::move(chunk);
 }
 
 Chunk* World::getChunkAt(glm::ivec3 position) {
