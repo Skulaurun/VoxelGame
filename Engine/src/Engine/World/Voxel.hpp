@@ -13,14 +13,14 @@ enum class BlockType {
 class Voxel {
 
 public:
-    // TODO: Figure out winding
+    // TODO: dedup vertices (3D)
 
     constexpr static std::array<glm::vec3, 6 * 4> FACES{{
         // LEFT
         { 0.0f, 0.0f, 1.0f },
-        { 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f },
         { 0.0f, 1.0f, 1.0f },
+        { 0.0f, 1.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f },
 
         // RIGHT
         { 1.0f, 0.0f, 1.0f },
@@ -36,15 +36,15 @@ public:
 
         // BACK
         { 0.0f, 0.0f, 0.0f },
-        { 1.0f, 0.0f, 0.0f },
-        { 1.0f, 1.0f, 0.0f },
         { 0.0f, 1.0f, 0.0f },
+        { 1.0f, 1.0f, 0.0f },
+        { 1.0f, 0.0f, 0.0f },
 
         // TOP
         { 1.0f, 1.0f, 1.0f },
-        { 0.0f, 1.0f, 1.0f },
-        { 0.0f, 1.0f, 0.0f },
         { 1.0f, 1.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f },
+        { 0.0f, 1.0f, 1.0f },
 
         // BOTTOM
         { 1.0f, 0.0f, 1.0f },
