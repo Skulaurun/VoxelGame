@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Engine/Renderer/Frustum.hpp>
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
@@ -10,6 +9,8 @@
 #include <vector>
 #include <memory>
 
+class Frustum;
+
 class ChunkRenderer {
 
 public:
@@ -17,6 +18,11 @@ public:
         uint32_t indexCount = 0;
         bool enabled = false;
         std::shared_ptr<VertexArray> vertexArray;
+        Box3 boundingBox;
+    };
+
+    struct Statistics {
+        uint32_t numDrawCalls;
     };
 
     ChunkRenderer() = default;
@@ -28,10 +34,13 @@ public:
 
     void resize(uint32_t viewRange);
 
-    uint32_t getViewRange() const { return viewRange; }
+    auto viewRange() const { return m_viewRange; }
+    auto statistics() const -> const auto& { return m_stats; }
 
 private:
-    uint32_t viewRange;
-    std::vector<Renderable> renderables;
+    uint32_t m_viewRange;
+    std::vector<Renderable> m_renderables;
+
+    Statistics m_stats;
 
 };

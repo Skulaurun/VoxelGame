@@ -3,6 +3,7 @@
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
+#include <Engine/Renderer/Frustum.hpp>
 
 #include <Engine/World/Chunk.hpp>
 
@@ -11,10 +12,15 @@
 void ChunkRenderer::render(const Frustum& frustum) {
     ZoneScoped;
 
-    for (const auto& renderable : renderables) {
-        // TODO: Prevent empty drawcalls (with index count == 0)
+    m_stats = {};
+
+    for (const auto& renderable : m_renderables) {
         if (renderable.enabled && renderable.indexCount != 0) {
+            if (!frustum.intersectsBox(renderable.boundingBox)) {
+                continue;
+            }
             Renderer::draw(*renderable.vertexArray, renderable.indexCount);
+            m_stats.numDrawCalls++;
         }
     }
 }
@@ -26,26 +32,27 @@ void ChunkRenderer::uploadMesh(const Mesh& mesh, std::size_t index) {
         return;
     }
 
-    auto vertexArray = renderables[index].vertexArray;
+    auto vertexArray = m_renderables[index].vertexArray;
     vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
     vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
-    renderables[index].indexCount = mesh.indices.size();
-    renderables[index].enabled = true;
+    m_renderables[index].indexCount = mesh.indices.size();
+    m_renderables[index].boundingBox = mesh.boundingBox;
+    m_renderables[index].enabled = true;
 }
 
 void ChunkRenderer::setEnabled(std::size_t index, bool value) {
-    assert(index >= 0 && index < renderables.size());
-    renderables[index].enabled = value;
+    assert(index >= 0 && index < m_renderables.size());
+    m_renderables[index].enabled = value;
 }
 
 void ChunkRenderer::resize(uint32_t viewRange) {
     ZoneScoped;
 
-    this->viewRange = viewRange;
+    m_viewRange = viewRange;
     const uint32_t side = 2 * viewRange + 1;
-    renderables.resize(side * side * side);
+    m_renderables.resize(side * side * side);
 
-    for (std::size_t i = 0; i < renderables.size(); i++) {
+    for (std::size_t i = 0; i < m_renderables.size(); i++) {
         auto indexBuffer = std::make_shared<IndexBuffer>(6 * Chunk::MAX_FACES * sizeof(uint32_t));
         auto vertexBuffer = std::make_shared<VertexBuffer>(4 * Chunk::MAX_FACES * sizeof(Vertex));
         vertexBuffer->setLayout({
@@ -59,6 +66,6 @@ void ChunkRenderer::resize(uint32_t viewRange) {
         auto vertexArray = std::make_shared<VertexArray>();
         vertexArray->addVertexBuffer(vertexBuffer);
         vertexArray->setIndexBuffer(indexBuffer);
-        renderables[i].vertexArray = vertexArray;
+        m_renderables[i].vertexArray = vertexArray;
     }
 }

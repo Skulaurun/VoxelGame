@@ -7,9 +7,15 @@
 class Frustum {
 
 public:
-    void intersectsBox(const Box3& box);
+    bool intersectsBox(const Box3& box) const;
+    bool intersectsPoint(const Point3& point) const;
+
+    void update(const glm::mat4& viewProjection);
 
 private:
-    std::array<Plane, 6> planes;
+    static float distanceToPoint(const Plane& plane, const Point3& point);
+
+private:
+    std::array<Plane, 6> m_planes;
 
 };

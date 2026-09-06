@@ -5,9 +5,12 @@
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
 #include <Engine/Renderer/Renderer.hpp>
 
+#include <Engine/Core/Math.hpp>
+
 struct Mesh {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
+    Box3 boundingBox;
 };
 
 inline void generateQuadIndices(Mesh& mesh, std::size_t quadCount) {

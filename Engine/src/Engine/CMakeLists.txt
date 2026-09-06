@@ -11,6 +11,7 @@ add_library(VoxelEngine
     "Renderer/Renderer.cpp"
     "Renderer/ChunkRenderer.cpp"
     "Renderer/PerspectiveCamera.cpp"
+    "Renderer/Frustum.cpp"
 
     "World/Voxel.cpp"
     "World/Chunk.cpp"

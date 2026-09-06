@@ -199,5 +199,7 @@ void Chunk::generateMesh(glm::vec3 offset) {
 
     generateQuadIndices(m_mesh, quadCount);
 
+    m_mesh.boundingBox = box();
+
     }
 }

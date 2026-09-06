@@ -2,6 +2,8 @@
 #include <Engine/World/Chunk.hpp>
 #include <Engine/World/World.hpp>
 
+#include <glm/gtx/norm.hpp>
+
 ChunkManager::ChunkManager(World& world) : m_world{world} {}
 
 // FIXME: Performance degraded
@@ -9,13 +11,14 @@ ChunkManager::ChunkManager(World& world) : m_world{world} {}
 void ChunkManager::update(const glm::vec3& playerPosition) {
     ZoneScoped;
 
-    int32_t viewRange = m_world.viewRange();
+    const int32_t viewRange = m_world.viewRange();
+    const int32_t squaredViewRange{ (viewRange * Chunk::SIZE) * (viewRange * Chunk::SIZE) };
 
     m_chunkEvents.clear();
 
     auto isInViewRange = [&](const glm::ivec3& chunkPosition) {
-        const auto offset{ Chunk::SIZE / 2 };
-        return glm::distance(playerPosition, glm::vec3{chunkPosition * Chunk::SIZE + offset}) <= viewRange * Chunk::SIZE;
+        constexpr int32_t CENTER_OFFSET{ Chunk::SIZE / 2 };
+        return glm::distance2(playerPosition, glm::vec3{chunkPosition * Chunk::SIZE + CENTER_OFFSET}) <= squaredViewRange;
     };
 
     for (std::size_t i = 0; i < m_loadedChunks.size(); i++) {

@@ -4,6 +4,8 @@
 
 #include <glm/glm.hpp>
 
+// TODO: Recalculate in setters
+
 class PerspectiveCamera {
 
 public:

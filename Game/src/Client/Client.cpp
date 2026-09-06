@@ -199,6 +199,8 @@ void Client::update(const float dt) {
 
     processInput(m_window.nativeWindow(), dt);
 
+    m_frustum.update(m_camera.viewProjection());
+
     // [= Render Scene =]
 
     Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
@@ -245,13 +247,16 @@ void Client::update(const float dt) {
 
     ImGui::SetNextWindowSize(ImVec2(132, 100));
     ImGui::Begin("Overlay");
-    // 1s / fps = deltaTime
-    // fps = 1 / deltaTime
     ImGui::TextUnformatted(
         std::format("{:.1f} {:.1f} {:.1f}", m_camera.position().x, m_camera.position().y, m_camera.position().z).c_str()
     );
+    // 1s / fps = deltaTime
+    // fps = 1 / deltaTime
     ImGui::TextUnformatted(
         std::format("FPS: {}", m_fps).c_str()
+    );
+    ImGui::TextUnformatted(
+        std::format("Draw calls: {}", m_chunkRenderer.statistics().numDrawCalls).c_str()
     );
     ImGui::End();
 

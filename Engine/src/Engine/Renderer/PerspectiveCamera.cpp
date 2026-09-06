@@ -17,7 +17,11 @@ PerspectiveCamera::PerspectiveCamera(float fovY, float aspectRatio, float near, 
     m_view{1.0f},
     m_projection{1.0f},
     m_viewProjection{1.0f}
-{}
+{
+    updateView();
+    updateProjection();
+    updateViewProjection();
+}
 
 void PerspectiveCamera::updateView() const {
     m_view = glm::lookAt(m_position, m_position + m_direction, WORLD_UP);
