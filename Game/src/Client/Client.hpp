@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Engine/World/World.hpp>
+#include "Client/ChunkRenderer.hpp"
+#include "Server/World/World.hpp"
 
 #include <Engine/Renderer/Frustum.hpp>
-#include <Engine/Renderer/ChunkRenderer.hpp>
 #include <Engine/Renderer/PerspectiveCamera.hpp>
 #include <Engine/Renderer/OpenGL/Shader.hpp>
 

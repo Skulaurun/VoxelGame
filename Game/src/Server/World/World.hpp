@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Engine/World/Chunk.hpp>
-#include <Engine/World/ChunkManager.hpp>
-#include <Engine/World/WorldGenerator.hpp>
+#include "Server/World/Chunk.hpp"
+#include "Server/World/ChunkManager.hpp"
+#include "Server/World/WorldGenerator.hpp"
 
 #include <tracy/Tracy.hpp>
 

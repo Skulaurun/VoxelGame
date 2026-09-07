@@ -1,20 +1,37 @@
-#include <Engine/World/ChunkManager.hpp>
-#include <Engine/World/Chunk.hpp>
-#include <Engine/World/World.hpp>
+#include "Server/World/ChunkManager.hpp"
+#include "Server/World/Chunk.hpp"
+#include "Server/World/World.hpp"
 
 #include <glm/gtx/norm.hpp>
 
-ChunkManager::ChunkManager(World& world) : m_world{world} {}
+ChunkManager::ChunkManager(World& world) : m_world{world}, m_lastPlayerChunk{INT32_MAX, INT32_MAX, INT32_MAX} {}
 
-// FIXME: Performance degraded
+// FIXME: Performance degraded (why the lag spikes?)
 
 void ChunkManager::update(const glm::vec3& playerPosition) {
     ZoneScoped;
 
+    m_chunkEvents.clear();
+
+    // for (std::size_t i = 0; i < m_loadedChunks.size(); i++) {
+    //     if (m_loadedChunks[i].isOccupied()) {
+    //         auto state = m_loadedChunks[i].chunk->state();
+    //         if (state == Chunk::State::Generated) {
+    //             m_chunkEvents.emplace_back(i, Event::Type::Load);
+    //         }
+    //     }
+    // }
+
+    // TODO: this can cause chunk to Load & Unload in same frame
+
+    const auto playerChunk = World::toChunkPosition(playerPosition);
+    if (m_lastPlayerChunk == playerChunk) {
+        return;
+    }
+    m_lastPlayerChunk = playerChunk;
+
     const int32_t viewRange = m_world.viewRange();
     const int32_t squaredViewRange{ (viewRange * Chunk::SIZE) * (viewRange * Chunk::SIZE) };
-
-    m_chunkEvents.clear();
 
     auto isInViewRange = [&](const glm::ivec3& chunkPosition) {
         constexpr int32_t CENTER_OFFSET{ Chunk::SIZE / 2 };
@@ -40,6 +57,9 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
                 if (isInViewRange(chunkPosition)) {
                     Chunk* chunk = m_world.getChunkAt(chunkPosition);
                     if (chunk) {
+                        if (chunk->state() == Chunk::State::Empty) {
+                            continue;
+                        }
                         if (!std::ranges::contains(m_loadedChunks, chunk, &Slot::chunk)) {
                             // Activate chunk
                             for (std::size_t i = 0; i < m_loadedChunks.size(); i++) {
@@ -52,11 +72,7 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
                         }
                     } else {
                         // Generate or load chunk
-                        if (!m_chunksInGeneration.contains(chunkPosition)) {
-                            m_chunksInGeneration.emplace(chunkPosition);
-                            
-                            m_chunksToGenerate.emplace_back(chunkPosition);
-                        }
+                        m_chunksToGenerate.emplace_back(chunkPosition);
                     }
                 }
             }

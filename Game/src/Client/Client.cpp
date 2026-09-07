@@ -1,5 +1,5 @@
 #include "Client.hpp"
-#include "../ShaderFile.hpp"
+#include "ShaderFile.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -79,7 +79,6 @@ Client::Client() :
             for (int32_t x = -World::CHUNK_SIZE; x < World::CHUNK_SIZE; x++) {
                 for (int32_t z = -World::CHUNK_SIZE; z < World::CHUNK_SIZE; z++) {
                     queue.emplace_back(x, y, z);
-                    m_world.chunkManager().addChunkInGeneration({x, y, z});
                 }
             }
         }
@@ -224,7 +223,8 @@ void Client::update(const float dt) {
                 chunk->generateMesh(chunk->position() * Chunk::SIZE);
             }
             m_chunkRenderer.uploadMesh(chunk->mesh(), chunkEvent.id);
-        } else if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
+        }
+        if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
             m_chunkRenderer.setEnabled(chunkEvent.id, false);
         }
     }

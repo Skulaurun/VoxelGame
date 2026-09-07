@@ -8,18 +8,9 @@ add_library(VoxelEngine
     "Renderer/OpenGL/VertexBuffer.cpp"
     "Renderer/OpenGL/IndexBuffer.cpp"
     "Renderer/OpenGL/VertexArray.cpp"
-    "Renderer/Renderer.cpp"
-    "Renderer/ChunkRenderer.cpp"
     "Renderer/PerspectiveCamera.cpp"
     "Renderer/Frustum.cpp"
-
-    "World/Voxel.cpp"
-    "World/Chunk.cpp"
-    "World/World.cpp"
-    "World/ChunkManager.cpp"
-    "World/WorldGenerator.cpp"
-    
-    "Application.cpp"
+    "Renderer/Renderer.cpp"
 )
 
 target_include_directories(VoxelEngine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

@@ -32,13 +32,20 @@ public:
 
     void enqueue(std::invocable<ChunkQueue&> auto&& pusher) {
         std::scoped_lock lock{m_mutex};
+
+        std::size_t begin = m_queue.size();
         pusher(m_queue);
+        std::size_t end = m_queue.size();
+        
+        prepareChunks(begin, end);
         m_workAvailable.notify_one();
     }
 
 private:
     void doWork();
     void generate(Chunk& chunk);
+
+    void prepareChunks(std::size_t begin, std::size_t end);
 
 private:
     World& m_world;

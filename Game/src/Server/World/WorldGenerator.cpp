@@ -1,6 +1,7 @@
-#include <Engine/World/WorldGenerator.hpp>
-#include <Engine/World/World.hpp>
-#include <Engine/World/Noise.hpp>
+#include "Server/World/WorldGenerator.hpp"
+#include "Server/World/World.hpp"
+
+#include <Engine/Noise.hpp>
 
 WorldGenerator::WorldGenerator(World& world, std::size_t threadCount) :
     m_world{world},
@@ -18,8 +19,21 @@ WorldGenerator::~WorldGenerator() {
 
 void WorldGenerator::enqueue(const glm::vec3& coord) {
     std::scoped_lock lock{m_mutex};
+
+    std::size_t begin = m_queue.size();
     m_queue.emplace_back(coord);
+
+    prepareChunks(begin, begin + 1);
     m_workAvailable.notify_one();
+}
+
+void WorldGenerator::prepareChunks(std::size_t begin, std::size_t end) {
+    for (std::size_t i = begin; i < end; i++) {
+        const auto& position = m_queue[i];
+        m_world.setChunk(
+            std::make_unique<Chunk>(m_world, position, Chunk::State::Empty)
+        );
+    }
 }
 
 float density(const glm::vec3& worldPosition) {
@@ -66,8 +80,11 @@ void WorldGenerator::doWork() {
         }
         m_workAvailable.notify_one();
     
-        auto chunk = std::make_unique<Chunk>(m_world, coord);
-        generate(*chunk);
-        m_world.setChunk(std::move(chunk));
+        // FIXME: What if chunk is unloaded after get returns?
+        auto chunk = m_world.getChunkAt(coord);
+        if (chunk) {
+            generate(*chunk);
+            chunk->setState(Chunk::State::Generated);
+        }
     }
 }

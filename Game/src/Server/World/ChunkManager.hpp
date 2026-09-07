@@ -37,16 +37,13 @@ public:
         m_loadedChunks.resize(newSize, Slot{0, nullptr});
     }
 
-    // FIXME:
-    void addChunkInGeneration(const glm::ivec3& coord) {
-        m_chunksInGeneration.emplace(coord);
-    }
-
     const auto& loadedChunks() const { return m_loadedChunks; }
     const auto& chunkEvents() const { return m_chunkEvents; }
 
 private:
     World& m_world;
+
+    glm::ivec3 m_lastPlayerChunk;
 
     std::vector<Slot> m_loadedChunks;
 
@@ -54,6 +51,5 @@ private:
     std::vector<Event> m_chunkEvents;
 
     std::vector<glm::ivec3> m_chunksToGenerate;
-    std::unordered_set<glm::ivec3> m_chunksInGeneration;
 
 };

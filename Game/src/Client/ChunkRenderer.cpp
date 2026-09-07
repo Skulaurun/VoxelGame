@@ -1,11 +1,10 @@
-#include <Engine/Renderer/ChunkRenderer.hpp>
+#include "Client/ChunkRenderer.hpp"
+#include "Server/World/Chunk.hpp"
 
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
 #include <Engine/Renderer/Frustum.hpp>
-
-#include <Engine/World/Chunk.hpp>
 
 #include <tracy/Tracy.hpp>
 

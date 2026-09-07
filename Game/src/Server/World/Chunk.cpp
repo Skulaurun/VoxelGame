@@ -1,11 +1,12 @@
-#include <Engine/World/Chunk.hpp>
-#include <Engine/World/World.hpp>
-#include <Engine/World/Noise.hpp>
+#include "Server/World/Chunk.hpp"
+#include "Server/World/World.hpp"
+
+#include <Engine/Noise.hpp>
 
 #include <tracy/Tracy.hpp>
 
-Chunk::Chunk(World& m_world, glm::ivec3 position)
-    : m_world{m_world}, m_position{position}, m_dirty{false} {}
+Chunk::Chunk(World& m_world, glm::ivec3 position, State state)
+    : m_world{m_world}, m_position{position}, m_dirty{false}, m_state{state} {}
 
 glm::ivec3 Chunk::toWorldPosition(glm::ivec3 voxelPosition) const {
     return m_world.toWorldPosition(m_position, voxelPosition);
