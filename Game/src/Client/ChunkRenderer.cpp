@@ -1,5 +1,5 @@
 #include "Client/ChunkRenderer.hpp"
-#include "Server/World/Chunk.hpp"
+#include "Client/World/Chunk.hpp"
 
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>

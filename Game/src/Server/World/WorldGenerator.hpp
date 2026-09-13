@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Server/World/Chunk.hpp"
+
 #include <tracy/Tracy.hpp>
 
 #include <glm/vec3.hpp>
@@ -24,9 +26,19 @@ class WorldGenerator {
 public:
     using ChunkQueue = std::deque<glm::vec3>;
 
+    struct Result {
+        Chunk::State state;
+        std::unique_ptr<Chunk> chunk;
+    };
+
 public:
     WorldGenerator(World& world, std::size_t threadCount = std::thread::hardware_concurrency());
     ~WorldGenerator();
+
+    // commit results to m_world,
+    // for each finished result, check its neighbors if they arent already generated,
+    // if they arent, check if next stage of generation can be run, if yes, submit to thread pool
+    void update();
 
     void enqueue(const glm::vec3& coord);
 
@@ -43,9 +55,11 @@ public:
 
 private:
     void doWork();
-    void generate(Chunk& chunk);
+    void generateTerrain(Chunk& chunk);
 
     void prepareChunks(std::size_t begin, std::size_t end);
+
+    bool isReadyForNextStage(const Chunk& chunk);
 
 private:
     World& m_world;
@@ -54,6 +68,9 @@ private:
 
     TracyLockable(std::mutex, m_mutex);
     ChunkQueue m_queue;
+
+    TracyLockable(std::mutex, m_completedMutex);
+    std::deque<Result> m_completedQueue;
 
     TracyCv(std::condition_variable, m_workAvailable);
 

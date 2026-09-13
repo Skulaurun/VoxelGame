@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Client/ChunkRenderer.hpp"
-#include "Server/World/World.hpp"
 
 #include <Engine/Renderer/Frustum.hpp>
 #include <Engine/Renderer/PerspectiveCamera.hpp>
@@ -10,8 +9,11 @@
 #include <Engine/Core/Window.hpp>
 
 #include <memory>
+#include <thread>
 
 struct GLFWwindow;
+
+class Server;
 
 class Client {
 
@@ -55,7 +57,8 @@ private:
     // TODO: move to GUI
     float m_fps;
 
-    // TODO: This is ServerWorld, separate
-    World m_world;
+    // TODO: Add client Connection
 
+    std::jthread m_serverThread;
+    std::unique_ptr<Server> m_internalServer;
 };

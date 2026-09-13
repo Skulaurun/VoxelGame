@@ -1,8 +1,9 @@
 #pragma once
 
 #include "Server/World/Chunk.hpp"
-#include "Server/World/ChunkManager.hpp"
 #include "Server/World/WorldGenerator.hpp"
+
+#include "Common/Util.hpp"
 
 #include <tracy/Tracy.hpp>
 
@@ -13,12 +14,10 @@
 #include <memory>
 #include <unordered_map>
 
-class ChunkRenderer;
-
 class World {
 
 public:
-    constexpr static int32_t CHUNK_SIZE = 8;
+    using ChunkMap = std::unordered_map<glm::ivec3, Chunk::Holder>;
 
 public:
     World();
@@ -33,30 +32,41 @@ public:
 
     void setViewRange(uint32_t viewRange);
 
-    void setChunk(std::unique_ptr<Chunk> chunk);
+    void addChunk(glm::ivec3 position);
+    void setChunk(std::unique_ptr<Chunk> chunk, Chunk::State state);
 
-    Chunk* getChunkAt(glm::ivec3 position);
-    const Chunk* getChunkAt(glm::ivec3 position) const;
+    template<typename Self>
+    auto chunkHolderAt(this Self&& self, glm::ivec3 position)
+        -> std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const Chunk::Holder*, Chunk::Holder*> {
+        auto it = self.m_chunks.find(position);
+        return (it != self.m_chunks.end()) ? &it->second : nullptr;
+    }
 
-    Voxel* getVoxelAt(glm::ivec3 worldPosition);
+    template<typename Self>
+    auto chunkAt(this Self&& self, glm::ivec3 position)
+        -> std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const Chunk*, Chunk*> {
+        auto it = self.m_chunks.find(position);
+        return (it != self.m_chunks.end()) ? it->second.chunk.get() : nullptr;
+    }
+
+    template<typename Self>
+    auto voxelAt(this Self&& self, glm::ivec3 worldPosition)
+        -> std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const Voxel*, Voxel*> {
+        auto* chunk = self.chunkAt(toChunkPosition(worldPosition));
+        return chunk ? chunk->grid.at(toLocalPosition(worldPosition)) : nullptr;
+    }
 
     auto viewRange() const { return m_viewRange; }
 
-    ChunkManager& chunkManager() { return m_chunkManager; }
     WorldGenerator& generator() { return m_generator; }
 
-    static glm::ivec3 toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelPosition);
-    static glm::ivec3 toChunkPosition(glm::ivec3 worldPosition);
-    static glm::ivec3 toLocalPosition(glm::ivec3 worldPosition);
-
 private:
-    std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>> m_chunks;
+    ChunkMap m_chunks;
 
-    ChunkManager m_chunkManager;
     WorldGenerator m_generator;
 
     uint32_t m_viewRange;
 
-    mutable TracyLockable(std::mutex, m_mtxChunks);
+    //mutable TracyLockable(std::mutex, m_mtxChunks);
 
 };

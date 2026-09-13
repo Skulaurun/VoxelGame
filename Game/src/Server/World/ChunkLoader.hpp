@@ -1,22 +1,30 @@
 #pragma once
 
+#include "Server/World/Chunk.hpp"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
 
-#include <unordered_set>
-
 class World;
-class Chunk;
 
-class ChunkManager {
+class ChunkLoader {
 
 public:
     struct Slot {
         std::size_t index;
-        Chunk* chunk;
+        Chunk::Holder* holder;
+        glm::ivec3 position;
+        Chunk::State lastState;
 
-        bool isOccupied() const { return chunk != nullptr; }
+        bool hasFinishedLoading() {
+            if (!isOccupied()) return false;
+            bool hasChanged = holder->state != lastState;
+            lastState = holder->state;
+            return hasChanged && holder->state == Chunk::State::Done;
+        }
+
+        bool isOccupied() const { return holder != nullptr; }
     };
 
     struct Event {
@@ -29,7 +37,7 @@ public:
     };
 
 public:
-    ChunkManager(World& world);
+    ChunkLoader(World& world);
 
     void update(const glm::vec3& playerPosition);
 

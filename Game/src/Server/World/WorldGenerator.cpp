@@ -1,5 +1,7 @@
-#include "Server/World/WorldGenerator.hpp"
+#include "WorldGenerator.hpp"
 #include "Server/World/World.hpp"
+
+#include "Common/Util.hpp"
 
 #include <Engine/Noise.hpp>
 
@@ -30,11 +32,12 @@ void WorldGenerator::enqueue(const glm::vec3& coord) {
 void WorldGenerator::prepareChunks(std::size_t begin, std::size_t end) {
     for (std::size_t i = begin; i < end; i++) {
         const auto& position = m_queue[i];
-        m_world.setChunk(
-            std::make_unique<Chunk>(m_world, position, Chunk::State::Empty)
-        );
+        m_world.addChunk(position);
     }
 }
+
+// Terrain Generation
+// -------------------------------------------------
 
 float density(const glm::vec3& worldPosition) {
     const float scale = 0.05f;
@@ -44,11 +47,11 @@ float density(const glm::vec3& worldPosition) {
     return perlinNoise(worldPosition * scale) - bias;
 }
 
-void WorldGenerator::generate(Chunk& chunk) {
+void WorldGenerator::generateTerrain(Chunk& chunk) {
     for (int32_t y = 0; y < Chunk::SIZE; y++) {
         for (int32_t x = 0; x < Chunk::SIZE; x++) {
             for (int32_t z = 0; z < Chunk::SIZE; z++) {
-                glm::ivec3 worldPosition = chunk.toWorldPosition({x, y, z});
+                glm::ivec3 worldPosition = toWorldPosition(chunk.position, {x, y, z});
                 if (density(worldPosition) > 0.0f) {
                     BlockType type = BlockType::Stone;
 
@@ -56,11 +59,30 @@ void WorldGenerator::generate(Chunk& chunk) {
                         type = BlockType::Grass;
                     }
 
-                    chunk.at({x, y, z})->setType(type);
+                    chunk.grid.at({x, y, z})->type = type;
                 }
             }
         }
     }
+}
+
+// River Generation
+// -------------------------------------------------
+
+// Cave Generation
+// -------------------------------------------------
+
+// Tree Generation
+// -------------------------------------------------
+
+void WorldGenerator::update() {
+    std::scoped_lock lock{m_completedQueue};
+
+    for (auto& result : m_completedQueue) {
+        m_world.setChunk(std::move(result.chunk), result.state);
+    }
+
+    m_completedQueue.clear();
 }
 
 void WorldGenerator::doWork() {
@@ -80,11 +102,12 @@ void WorldGenerator::doWork() {
         }
         m_workAvailable.notify_one();
     
-        // FIXME: What if chunk is unloaded after get returns?
-        auto chunk = m_world.getChunkAt(coord);
-        if (chunk) {
-            generate(*chunk);
-            chunk->setState(Chunk::State::Generated);
+        auto chunk = std::make_unique<Chunk>(coord);
+        generateTerrain(*chunk);
+
+        {
+            std::scoped_lock lock{m_completedMutex};
+            m_completedQueue.emplace_back(Chunk::State::Done, std::move(chunk));
         }
     }
 }

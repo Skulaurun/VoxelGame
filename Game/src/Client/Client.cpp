@@ -1,6 +1,8 @@
 #include "Client.hpp"
 #include "ShaderFile.hpp"
 
+#include "Server/Server.hpp"
+
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
@@ -71,24 +73,21 @@ Client::Client() :
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 450");
 
-    // Server init
-
-    m_world.setViewRange(World::CHUNK_SIZE);
-    m_world.generator().enqueue([&](WorldGenerator::ChunkQueue& queue) {
-        for (int32_t y = -World::CHUNK_SIZE; y < World::CHUNK_SIZE; y++) {
-            for (int32_t x = -World::CHUNK_SIZE; x < World::CHUNK_SIZE; x++) {
-                for (int32_t z = -World::CHUNK_SIZE; z < World::CHUNK_SIZE; z++) {
-                    queue.emplace_back(x, y, z);
-                }
-            }
-        }
-    });
+    // Singleplayer only
+    m_internalServer = std::make_unique<Server>();
+    m_serverThread = std::jthread{[this] {
+        m_internalServer->run();
+    }};
 }
 
 Client::~Client() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    if (m_internalServer) {
+        m_internalServer->stop();
+    }
 }
 
 void Client::onFrameBufferSize(GLFWwindow* window, int width, int height) {
@@ -99,36 +98,36 @@ void Client::onFrameBufferSize(GLFWwindow* window, int width, int height) {
 
 void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        glm::ivec3 blockPosition = m_world.castRay(m_camera.position(), m_camera.direction(), 10.0f);
-        Voxel* voxel = m_world.getVoxelAt(blockPosition);
-        if (voxel) {
-            voxel->setType(BlockType::Void);
+        // glm::ivec3 blockPosition = m_world.castRay(m_camera.position(), m_camera.direction(), 10.0f);
+        // Voxel* voxel = m_world.getVoxelAt(blockPosition);
+        // if (voxel) {
+        //     voxel->type = BlockType::Void;
 
-            glm::ivec3 localPosition = World::toLocalPosition(blockPosition);
-            glm::ivec3 chunkPosition = World::toChunkPosition(blockPosition);
+        //     glm::ivec3 localPosition = toLocalPosition(blockPosition);
+        //     glm::ivec3 chunkPosition = toChunkPosition(blockPosition);
 
-            Chunk* chunk = m_world.getChunkAt(chunkPosition);
-            if (chunk) {
-                chunk->setDirty(true);
-            }
+        //     Chunk* chunk = m_world.getChunkAt(chunkPosition);
+        //     // if (chunk) {
+        //     //     chunk->dirty = true;
+        //     // }
 
-            int dir[] = {-1, 1};
-            int boundary[] = {0, Chunk::SIZE - 1};
+        //     int dir[] = {-1, 1};
+        //     int boundary[] = {0, Chunk::SIZE - 1};
 
-            for (std::size_t i = 0; i < 3; i++) {
-                for (std::size_t j = 0; j < 2; j++) {
-                    if (localPosition[i] == boundary[j]) {
-                        glm::ivec3 neighborPosition = chunkPosition;
-                        neighborPosition[i] += dir[j];
+        //     for (std::size_t i = 0; i < 3; i++) {
+        //         for (std::size_t j = 0; j < 2; j++) {
+        //             if (localPosition[i] == boundary[j]) {
+        //                 glm::ivec3 neighborPosition = chunkPosition;
+        //                 neighborPosition[i] += dir[j];
 
-                        Chunk* chunk = m_world.getChunkAt(neighborPosition);
-                        if (chunk) {
-                            chunk->setDirty(true);
-                        }
-                    }
-                }
-            }
-        }
+        //                 Chunk* chunk = m_world.getChunkAt(neighborPosition);
+        //                 // if (chunk) {
+        //                 //     chunk->dirty = true;
+        //                 // }
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 
@@ -206,40 +205,6 @@ void Client::update(const float dt) {
 
     m_defaultShader->bind();
     m_defaultShader->setUniform("uViewProjection", m_camera.viewProjection());
-
-    ChunkManager& chunkManager = m_world.chunkManager();
-
-    chunkManager.update(m_camera.position());
-
-    {
-    ZoneScopedN("Process loaded chunks");
-
-    const auto& loadedChunks = chunkManager.loadedChunks();
-
-    for (const auto& chunkEvent : chunkManager.chunkEvents()) {
-        if (chunkEvent.type == ChunkManager::Event::Type::Load) {
-            Chunk* chunk = loadedChunks[chunkEvent.id].chunk;
-            if (chunk->mesh().indices.size() == 0) {
-                chunk->generateMesh(chunk->position() * Chunk::SIZE);
-            }
-            m_chunkRenderer.uploadMesh(chunk->mesh(), chunkEvent.id);
-        }
-        if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
-            m_chunkRenderer.setEnabled(chunkEvent.id, false);
-        }
-    }
-
-    for (const auto& chunkRef : loadedChunks) {
-        if (chunkRef.isOccupied() && chunkRef.chunk->isDirty()) {
-            // Update chunk
-            Chunk* chunk = chunkRef.chunk;
-            chunk->generateMesh(chunk->position() * Chunk::SIZE);
-            chunk->setDirty(false);
-
-            m_chunkRenderer.uploadMesh(chunk->mesh(), chunkRef.index);
-        }
-    }
-    }
 
     m_chunkRenderer.render(m_frustum);
     

@@ -69,5 +69,3 @@ private:
     mutable glm::mat4 m_viewProjection;
 
 };
-
-// TODO: implement frustum culling
