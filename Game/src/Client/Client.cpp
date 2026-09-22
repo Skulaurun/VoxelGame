@@ -1,4 +1,5 @@
 #include "Client.hpp"
+#include "NetCode.hpp"
 #include "ShaderFile.hpp"
 
 #include "Server/Server.hpp"
@@ -25,7 +26,10 @@ Client::Client() :
     m_yaw{-90.0f},
     m_pitch{0.0f},
 
-    m_fps{0.0f}
+    m_fps{0.0f},
+
+    m_messageHandler{std::make_shared<ClientHandler>()},
+    m_netClient{m_messageHandler}
 {
     // GLFW init
 
@@ -55,7 +59,8 @@ Client::Client() :
 
     Renderer::init();
 
-    m_chunkRenderer.resize(World::CHUNK_SIZE);
+    // TODO:
+    m_chunkRenderer.resize(8);
 
     m_defaultShader = std::make_unique<Shader>(std::vector<ShaderSource>{
         { ShaderType::Vertex, embedView(ShaderFile::defaultVertex) },
@@ -73,14 +78,21 @@ Client::Client() :
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 450");
 
+    // Network init
+
+    m_netClient.start();
+
     // Singleplayer only
     m_internalServer = std::make_unique<Server>();
     m_serverThread = std::jthread{[this] {
         m_internalServer->run();
     }};
+    m_internalServer->netServer().connect(m_netClient.createConnection());
 }
 
 Client::~Client() {
+    m_netClient.stop();
+
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -101,7 +113,7 @@ void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods)
         // glm::ivec3 blockPosition = m_world.castRay(m_camera.position(), m_camera.direction(), 10.0f);
         // Voxel* voxel = m_world.getVoxelAt(blockPosition);
         // if (voxel) {
-        //     voxel->type = BlockType::Void;
+        //     *voxel = BlockType::Void;
 
         //     glm::ivec3 localPosition = toLocalPosition(blockPosition);
         //     glm::ivec3 chunkPosition = toChunkPosition(blockPosition);
@@ -192,6 +204,10 @@ void Client::update(const float dt) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    // [= Server events =]
+
+    m_netClient.update();
 
     // [= User input =]
 

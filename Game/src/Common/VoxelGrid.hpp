@@ -35,6 +35,9 @@ public:
         return m_voxels[i];
     }
 
+    auto voxels() -> auto& { return m_voxels; }
+    auto voxels() const -> const auto& { return m_voxels; }
+
 private:
     std::array<Voxel, CUBIC_SIZE> m_voxels;
 

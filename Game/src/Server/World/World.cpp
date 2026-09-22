@@ -3,15 +3,14 @@
 #include <tracy/Tracy.hpp>
 
 World::World() :
-    m_generator{*this},
-    m_chunkManager{*this}
+    m_generator{*this}
 {}
 
 glm::ivec3 World::castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
     for (float i = 0.0f; i < maxDistance; i += 0.1f) {
         glm::ivec3 position = glm::floor(origin + i * direction);
         Voxel* voxel = voxelAt(position);
-        if (voxel && voxel->type != BlockType::Void) {
+        if (voxel && static_cast<BlockType>(*voxel) != BlockType::Void) {
             return position;
         }
     }
@@ -22,9 +21,6 @@ glm::ivec3 World::castRay(const glm::vec3& origin, const glm::vec3& direction, f
 
 void World::setViewRange(uint32_t viewRange) {
     m_viewRange = viewRange;
-
-    const auto side = 2 * viewRange + 1;
-    m_chunkManager.resize(side * side * side);
 }
 
 void World::addChunk(glm::ivec3 position) {

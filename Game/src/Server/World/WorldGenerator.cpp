@@ -59,7 +59,7 @@ void WorldGenerator::generateTerrain(Chunk& chunk) {
                         type = BlockType::Grass;
                     }
 
-                    chunk.grid.at({x, y, z})->type = type;
+                    *chunk.grid.at({x, y, z}) = static_cast<Voxel>(type);
                 }
             }
         }
@@ -76,7 +76,7 @@ void WorldGenerator::generateTerrain(Chunk& chunk) {
 // -------------------------------------------------
 
 void WorldGenerator::update() {
-    std::scoped_lock lock{m_completedQueue};
+    std::scoped_lock lock{m_completedMutex};
 
     for (auto& result : m_completedQueue) {
         m_world.setChunk(std::move(result.chunk), result.state);

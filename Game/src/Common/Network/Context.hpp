@@ -1,35 +1,59 @@
 #pragma once
 
 #include "Message.hpp"
-#include "Connection.hpp"
 #include "Common/TsQueue.hpp"
 
-#include <asio.hpp>
+#include "Asio.hpp"
 
 namespace Common::Network {
 
+template<typename Handler>
 class Context {
 
 public:
-    Context();
-    virtual ~Context();
+    Context(std::shared_ptr<Handler> handler) :
+        m_handler{handler}
+    {}
 
-    virtual void start();
-    virtual void stop();
+    ~Context() {
+        stop();
+    }
 
-    virtual void update(bool blocking = true);
+    // FIXME: idle work?
 
-    virtual void addHandler(const std::shared_ptr<Handler>& handler);
+    void start() {
+        m_thread = std::jthread([this] {
+            m_context.run();
+        });
+    }
 
-    virtual void onMessage(InternalMessage& message) = 0;
+    void stop() {
+        m_context.stop();
+    }
 
-protected:
-    TsQueue<Event> queueIn;
+    void pollEvents(bool blocking = true) {
+        if (blocking) m_queueIn.wait();
 
-    asio::io_context context;
-    std::jthread thread;
+        // TODO: Add budget
 
-    std::vector<std::shared_ptr<Handler>> handlers;
+        while (!m_queueIn.empty()) {
+            std::visit(*m_handler, m_queueIn.front());
+            m_queueIn.popFront();
+        }
+    }
+
+    auto context() -> asio::io_context& { return m_context; }
+    auto context() const -> const asio::io_context& { return m_context; }
+
+    auto queueIn() -> TsQueue<Event>& { return m_queueIn; }
+    auto queueIn() const -> const TsQueue<Event>& { return m_queueIn; }
+
+private:
+    TsQueue<Event> m_queueIn;
+    std::jthread m_thread;
+    asio::io_context m_context;
+
+    std::shared_ptr<Handler> m_handler;
 
 };
 

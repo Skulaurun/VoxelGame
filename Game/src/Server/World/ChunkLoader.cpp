@@ -1,4 +1,4 @@
-#include "ChunkManager.hpp"
+#include "ChunkLoader.hpp"
 
 #include "Common/WorldConfig.hpp"
 #include "Common/Util.hpp"
@@ -8,9 +8,9 @@
 
 #include <glm/gtx/norm.hpp>
 
-ChunkManager::ChunkManager(World& world) : m_world{world}, m_lastPlayerChunk{INT32_MAX, INT32_MAX, INT32_MAX} {}
+ChunkLoader::ChunkLoader(World& world) : m_world{world}, m_lastPlayerChunk{INT32_MAX, INT32_MAX, INT32_MAX} {}
 
-void ChunkManager::update(const glm::vec3& playerPosition) {
+void ChunkLoader::update(const glm::vec3& playerPosition) {
     ZoneScoped;
 
     m_chunkEvents.clear();
@@ -29,8 +29,8 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
             if (m_loadedChunks[i].isOccupied()) {
                 if (!isInViewRange(m_loadedChunks[i].position)) {
                     // Deactivate
+                    m_chunkEvents.emplace_back(i, Event::Type::Unload, m_loadedChunks[i].position);
                     m_loadedChunks[i] = Slot{ 0, nullptr };
-                    m_chunkEvents.emplace_back(i, Event::Type::Unload);
                 }
             }
         }
@@ -51,7 +51,7 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
                                         m_loadedChunks[i] = Slot{ i, holder, chunkPosition, holder->state };
                                         
                                         if (holder->state == Chunk::State::Done) {
-                                            m_chunkEvents.emplace_back(i, Event::Type::Load);
+                                            m_chunkEvents.emplace_back(i, Event::Type::Load, chunkPosition);
                                         }
                                         break;
                                     }
@@ -83,7 +83,7 @@ void ChunkManager::update(const glm::vec3& playerPosition) {
     for (std::size_t i = 0; i < m_loadedChunks.size(); i++) {
         Slot& slot = m_loadedChunks[i];
         if (slot.hasFinishedLoading()) {
-            m_chunkEvents.emplace_back(i, Event::Type::Load);
+            m_chunkEvents.emplace_back(i, Event::Type::Load, slot.position);
         }
     }
 }

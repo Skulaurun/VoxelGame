@@ -72,10 +72,10 @@ public:
     }
 
 private:
-    std::mutex m_mutexWait;
+    mutable std::mutex m_mutexWait;
     std::condition_variable m_waitCondition;
 
-    std::mutex m_mutexQueue;
+    mutable std::mutex m_mutexQueue;
     std::deque<Value> m_queue;
 
 };

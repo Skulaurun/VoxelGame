@@ -1,11 +1,16 @@
 #include "Server.hpp"
 
+#include "NetCode.hpp"
 #include "ECS/Component.hpp"
 
-Server::Server() {
-    // Server init
+constexpr int32_t VIEW_RANGE{ 8 };
 
-    constexpr int32_t VIEW_RANGE{ 8 };
+Server::Server() :
+    m_running{false},
+    m_messageHandler{std::make_shared<ServerHandler>(*this)},
+    m_netServer{m_messageHandler, 5500} // TODO: port
+{
+    // Server init
 
     m_world.setViewRange(VIEW_RANGE);
     m_world.generator().enqueue([&](WorldGenerator::ChunkQueue& queue) {
@@ -17,15 +22,25 @@ Server::Server() {
             }
         }
     });
+
+    // Network init
+
+    m_netServer.start();
 }
 
 Server::~Server() {
     stop();
 }
 
-void Server::addClient() {
+void Server::addClient(std::shared_ptr<Common::Network::Connection> connection) {
     entt::entity playerEntity = m_registry.create();
     m_registry.emplace_or_replace<Ecs::Position>(playerEntity);
+
+    auto& client = m_clients.emplace_back(playerEntity, ChunkLoader{m_world}, connection);
+    
+    // TODO:
+    const auto side = 2 * VIEW_RANGE + 1;
+    client.chunkLoader.resize(side * side * side);
 }
 
 void Server::update() {
@@ -34,20 +49,16 @@ void Server::update() {
     for (auto& client : m_clients) {
         const auto& position = m_registry.get<Ecs::Position>(client.playerEntity);
         client.chunkLoader.update(position.value);
-
-        for (const auto& chunkEvent : client.chunkLoader.chunkEvents()) {
-            if (chunkEvent.type == ChunkLoader::Event::Type::Load) {
-                Chunk& chunk = *client.chunkLoader.loadedChunks()[chunkEvent.id].holder->chunk;
-            } else if (chunkEvent.type == ChunkLoader::Event::Type::Unload) {
-                // TODO: use chunk pos as id? add to event?
-            }
-        }
-
-        // TODO: send chunk loads / unloads to client
+        
+        sendChunkUpdate(*client.connection, client.chunkLoader);
     }
+
+    m_netServer.update();
 }
 
 void Server::run() {
+    m_running.store(true);
+
     while (isRunning()) {
         update();
     }
@@ -55,4 +66,5 @@ void Server::run() {
 
 void Server::stop() {
     m_running.store(false);
+    m_netServer.stop();
 }

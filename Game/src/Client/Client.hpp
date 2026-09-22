@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client/ChunkRenderer.hpp"
+#include "Common/Network/Client.hpp"
 
 #include <Engine/Renderer/Frustum.hpp>
 #include <Engine/Renderer/PerspectiveCamera.hpp>
@@ -14,6 +15,8 @@
 struct GLFWwindow;
 
 class Server;
+
+class ClientHandler;
 
 class Client {
 
@@ -57,7 +60,8 @@ private:
     // TODO: move to GUI
     float m_fps;
 
-    // TODO: Add client Connection
+    std::shared_ptr<ClientHandler> m_messageHandler;
+    Common::Network::Client<ClientHandler> m_netClient;
 
     std::jthread m_serverThread;
     std::unique_ptr<Server> m_internalServer;

@@ -3,45 +3,84 @@
 #include "Message.hpp"
 #include "Common/TsQueue.hpp"
 
-#include <asio.hpp>
+#include "Asio.hpp"
 
-// TODO:
-// the idea is something like std::variant<PhysicalConnection, LoopbackConnection>
+// TODO: use virtual functions not variant probably....
 
 namespace Common::Network {
 
 class Connection : public std::enable_shared_from_this<Connection> {
 
 public:
-    Connection(TsQueue<Event>& queue, asio::io_context& context, asio::ip::tcp::socket socket);
-    virtual ~Connection();
+    Connection(TsQueue<Event>& queue);
+    virtual ~Connection() = default;
 
-    void readHeader();
-    void readBody(const uint32_t id, const uint32_t length);
-
-    void writeHeaderAndBody();
-
-    void send(const Message& message);
-    void connect(const asio::ip::tcp::resolver::results_type& endpoints);
-    void close();
-
-    bool isConnected() const { return socket.is_open(); }
+    virtual void send(const Message& message) = 0;
+    virtual void close() = 0;
 
 protected:
-    void pushIncomingMessage(const std::shared_ptr<Message> message);
-    void pushInternalMessage(const InternalMessage::Type type, const std::error_code error = std::error_code());
+    TsQueue<Event>& m_queueIn;
 
-    std::shared_ptr<Connection> sharedFromThis();
+};
+
+class SocketConnection : public Connection {
 
 private:
-    uint8_t headerIn[2 * sizeof(uint32_t)];
-    std::vector<uint8_t> bodyIn;
+    struct MessageHeader {
+        uint32_t id;
+        uint32_t length;
+    };
 
-    TsQueue<Event>& queueIn;
-    TsQueue<std::shared_ptr<std::vector<uint8_t>>> queueOut;
+public:
+    SocketConnection(TsQueue<Event>& queue, asio::io_context& context, asio::ip::tcp::socket socket);
+    virtual ~SocketConnection();
 
-    asio::io_context& context;
-    asio::ip::tcp::socket socket;
+    void connect(const asio::ip::tcp::resolver::results_type& endpoints);
+
+    void send(const Message& message) override;
+    void close() override;
+
+    void readHeader();
+    void readBody(uint32_t messageId, uint32_t length);
+    void writeHeaderAndBody();
+
+    auto sharedFromThis() { return std::static_pointer_cast<SocketConnection>(shared_from_this()); }
+
+    bool isConnected() const { return m_socket.is_open(); }
+
+protected:
+    void handleError(std::shared_ptr<SocketConnection>&& self, std::error_code error);
+
+private:
+    uint8_t m_headerIn[2 * sizeof(uint32_t)];
+    std::vector<uint8_t> m_bodyIn;
+
+    TsQueue<std::shared_ptr<std::vector<uint8_t>>> m_queueOut;
+
+    asio::io_context& m_context;
+    asio::ip::tcp::socket m_socket;
+
+};
+
+class InternalConnection : public Connection {
+
+public:
+    InternalConnection(TsQueue<Event>& queue);
+    virtual ~InternalConnection();
+
+    void connect(const std::shared_ptr<InternalConnection>& connection);
+
+    void send(const Message& message) override;
+    void close() override;
+
+    auto sharedFromThis() { return std::static_pointer_cast<InternalConnection>(shared_from_this()); }
+
+    bool isConnected() const { return m_connected; }
+
+private:
+    bool m_connected;
+
+    std::weak_ptr<InternalConnection> m_connection;
 
 };
 

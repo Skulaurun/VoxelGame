@@ -24,18 +24,19 @@ void ChunkMesher::generate(Chunk& chunk, glm::vec3 offset) {
 
     // TODO: Do axes matter? (switching + and - didn't do a thing?)
     std::array<Chunk*, 7> chunks = {
-        // left
-        m_world.getChunkAt(chunk.position + glm::ivec3(-1, 0, 0)),
-        // right
-        m_world.getChunkAt(chunk.position + glm::ivec3(1, 0, 0)),
-        // front
-        m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, 1)),
-        // back
-        m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, -1)),
-        // top
-        m_world.getChunkAt(chunk.position + glm::ivec3(0, 1, 0)),
-        // bottom
-        m_world.getChunkAt(chunk.position + glm::ivec3(0, -1, 0))
+        // FIXME:
+        // // left
+        // m_world.getChunkAt(chunk.position + glm::ivec3(-1, 0, 0)),
+        // // right
+        // m_world.getChunkAt(chunk.position + glm::ivec3(1, 0, 0)),
+        // // front
+        // m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, 1)),
+        // // back
+        // m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, -1)),
+        // // top
+        // m_world.getChunkAt(chunk.position + glm::ivec3(0, 1, 0)),
+        // // bottom
+        // m_world.getChunkAt(chunk.position + glm::ivec3(0, -1, 0))
     };
 
     // X Axis
@@ -104,7 +105,7 @@ void ChunkMesher::generate(Chunk& chunk, glm::vec3 offset) {
     mesh.vertices.clear();
 
     auto isAir = [](Voxel* voxel) {
-        return voxel->type == BlockType::Void;
+        return static_cast<BlockType>(*voxel) == BlockType::Void;
     };
 
     std::size_t quadCount = 0;
@@ -167,7 +168,7 @@ void ChunkMesher::generate(Chunk& chunk, glm::vec3 offset) {
                             );
 
                             glm::vec4 color{ 0.5f, 0.5f, 0.5f, 1.0f };
-                            if (voxel->type == BlockType::Grass) {
+                            if (static_cast<BlockType>(*voxel) == BlockType::Grass) {
                                 color = { 0.2f, 0.85f, 0.25f, 1.0f };
                             }
 

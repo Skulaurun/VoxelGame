@@ -34,6 +34,7 @@ public:
 
         std::size_t id;
         Type type;
+        glm::ivec3 position;
     };
 
 public:

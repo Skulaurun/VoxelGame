@@ -1,11 +1,11 @@
 #pragma once
 
-enum class BlockType {
+#include <cstdint>
+
+enum class BlockType : uint32_t {
     Void,
     Grass,
     Stone
 };
 
-struct Voxel {
-    BlockType type;
-};
+using Voxel = uint32_t;

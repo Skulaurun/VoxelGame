@@ -3,9 +3,14 @@
 #include "ClientState.hpp"
 #include "World/World.hpp"
 
+#include "Common/Network/Server.hpp"
+#include "Common/Network/Connection.hpp"
+
 #include <entt/entt.hpp>
 
 #include <vector>
+
+class ServerHandler;
 
 class Server {
 
@@ -21,12 +26,15 @@ public:
 
     bool isRunning() const { return m_running.load(); }
 
-    void addClient(/* connection */);
+    // called from Handler
+    void addClient(std::shared_ptr<Common::Network::Connection> connection);
     void removeClient();
 
     void run();
     void update();
     void stop();
+
+    auto netServer() -> auto& { return m_netServer; }
 
 private:
     World m_world;
@@ -34,6 +42,9 @@ private:
 
     // probably part of World
     entt::registry m_registry;
+
+    std::shared_ptr<ServerHandler> m_messageHandler;
+    Common::Network::Server<ServerHandler> m_netServer;
 
     std::vector<ClientState> m_clients;
 
