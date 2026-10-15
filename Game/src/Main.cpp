@@ -5,6 +5,6 @@
 int main() {
     Log::init();
 
-    auto client = std::make_unique<Client>();
+    auto client = std::make_unique<Client::Client>();
     client->run();
 }

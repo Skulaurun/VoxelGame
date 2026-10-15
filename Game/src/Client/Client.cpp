@@ -14,6 +14,8 @@
 
 #include <format>
 
+namespace Client {
+
 constexpr glm::ivec2 DEFAULT_WINDOW_SIZE{ 1920, 1080 };
 
 constexpr float FOV_Y = 45.0f;
@@ -22,13 +24,16 @@ Client::Client() :
     m_window{WindowProperties{ "VoxelGame", DEFAULT_WINDOW_SIZE.x, DEFAULT_WINDOW_SIZE.y }},
     m_camera{FOV_Y, DEFAULT_WINDOW_SIZE.x / static_cast<float>(DEFAULT_WINDOW_SIZE.y), 0.1f, 10000.0f},
 
+    m_world{},
+    m_chunkMesher{m_world},
+
     m_cameraSpeed{10.0f},
     m_yaw{-90.0f},
     m_pitch{0.0f},
 
     m_fps{0.0f},
 
-    m_messageHandler{std::make_shared<ClientHandler>()},
+    m_messageHandler{std::make_shared<ClientHandler>(*this)},
     m_netClient{m_messageHandler}
 {
     // GLFW init
@@ -83,7 +88,7 @@ Client::Client() :
     m_netClient.start();
 
     // Singleplayer only
-    m_internalServer = std::make_unique<Server>();
+    m_internalServer = std::make_unique<Server::Server>();
     m_serverThread = std::jthread{[this] {
         m_internalServer->run();
     }};
@@ -91,6 +96,7 @@ Client::Client() :
 }
 
 Client::~Client() {
+    m_netClient.disconnect();
     m_netClient.stop();
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -209,11 +215,19 @@ void Client::update(const float dt) {
 
     m_netClient.update();
 
+    m_chunkMesher.drain([this](ChunkMesher::Result& result) {
+        // TODO: move mesh to World
+        m_chunkRenderer.loadMesh(static_cast<ChunkId>(std::hash<glm::ivec3>{}(result.position)), result.mesh);
+    });
+
     // [= User input =]
 
     processInput(m_window.nativeWindow(), dt);
 
     m_frustum.update(m_camera.viewProjection());
+
+    // TODO: temporary solution
+    m_world.setPlayerPosition(m_camera.position());
 
     // [= Render Scene =]
 
@@ -268,4 +282,10 @@ void Client::run() {
 
         update(deltaTime);        
     }
+
+    finish();
+}
+
+void Client::finish() {}
+
 }

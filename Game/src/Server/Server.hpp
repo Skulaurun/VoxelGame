@@ -10,6 +10,8 @@
 
 #include <vector>
 
+namespace Server {
+
 class ServerHandler;
 
 class Server {
@@ -49,3 +51,5 @@ private:
     std::vector<ClientState> m_clients;
 
 };
+
+}

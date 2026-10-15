@@ -5,12 +5,18 @@
 
 #include <array>
 
+namespace Client {
+
+class Client;
+
 class ClientHandler {
 
 public:
     using MessageHandler = void(ClientHandler::*)(std::shared_ptr<Common::Network::Connection>, Common::Network::ProtocolStream&);
 
 public:
+    ClientHandler(Client& client);
+
     void operator()(const Common::Network::Connect& message);
     void operator()(const Common::Network::Disconnect& message);
     void operator()(Common::Network::IncomingMessage& message);
@@ -24,6 +30,8 @@ public:
     }
 
 private:
+    Client& m_client;
+
     constexpr static auto handlerIndex(Common::Network::MessageId id) -> std::size_t {
         return static_cast<std::size_t>(id);
     };
@@ -33,3 +41,5 @@ private:
 };
 
 constexpr static auto MESSAGE_HANDLER_MAP = ClientHandler::initHandlers();
+
+}

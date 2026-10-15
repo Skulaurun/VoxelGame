@@ -14,6 +14,8 @@ constexpr auto NETWORK_BYTE_ORDER = std::endian::big;
 class ProtocolStream : public DataStream<NETWORK_BYTE_ORDER> {
 
 public:
+    using DataStream::DataStream;
+    
     using DataStream::write;
     using DataStream::read;
 
@@ -80,9 +82,7 @@ public:
             read(compressed[i]);
         }
 
-        // TODO: by ref vs by val?
-        auto voxels = decompressRle<Voxel>(compressed, VoxelGrid<Size>::CUBIC_SIZE);
-        std::memcpy(grid.voxels().data(), voxels.data(), voxels.size() * sizeof(Voxel));
+        decompressRle<Voxel>(compressed, grid.voxels());
         return *this;
     }
 

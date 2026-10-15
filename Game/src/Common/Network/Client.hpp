@@ -47,22 +47,18 @@ public:
     }
 
     void send(const Message& message) {
-        std::visit([this, &message](auto& connection) {
-            if (!connection) {
-                return;
-            }
-            connection->send(message);
-        });
+        if (!m_connection) {
+            return;
+        }
+        m_connection->send(message);
     }
 
     void disconnect() {
-        std::visit([this](auto& connection) {
-            if (!connection) {
-                return;
-            }
-            connection->close();
-            connection.reset();
-        }, m_connection);
+        if (!m_connection) {
+            return;
+        }
+        m_connection->close();
+        m_connection.reset();
     }
 
 private:

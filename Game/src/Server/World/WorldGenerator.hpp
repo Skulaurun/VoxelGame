@@ -18,6 +18,8 @@
 #define TracyCv(cvClass, variable) cvClass variable
 #endif
 
+namespace Server {
+
 class World;
 class Chunk;
 
@@ -75,3 +77,5 @@ private:
     TracyCv(std::condition_variable, m_workAvailable);
 
 };
+
+}

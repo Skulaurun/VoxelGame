@@ -2,6 +2,8 @@
 
 #include <tracy/Tracy.hpp>
 
+namespace Server {
+
 World::World() :
     m_generator{*this}
 {}
@@ -31,4 +33,6 @@ void World::setChunk(std::unique_ptr<Chunk> chunk, Chunk::State state) {
     auto& holder = m_chunks[chunk->position];
     holder.state = state;
     holder.chunk = std::move(chunk);
+}
+
 }

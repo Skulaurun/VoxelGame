@@ -14,6 +14,8 @@
 #include <memory>
 #include <unordered_map>
 
+namespace Server {
+
 class World {
 
 public:
@@ -70,3 +72,5 @@ private:
     //mutable TracyLockable(std::mutex, m_mtxChunks);
 
 };
+
+}

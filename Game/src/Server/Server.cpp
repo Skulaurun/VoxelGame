@@ -3,6 +3,8 @@
 #include "NetCode.hpp"
 #include "ECS/Component.hpp"
 
+namespace Server {
+
 constexpr int32_t VIEW_RANGE{ 8 };
 
 Server::Server() :
@@ -67,4 +69,6 @@ void Server::run() {
 void Server::stop() {
     m_running.store(false);
     m_netServer.stop();
+}
+
 }

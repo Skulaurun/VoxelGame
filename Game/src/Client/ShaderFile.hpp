@@ -1,5 +1,7 @@
 #pragma once
 
+namespace Client {
+
 struct ShaderFile {
 
 constexpr static char defaultVertex[] =
@@ -13,3 +15,5 @@ constexpr static char defaultFragment[] =
 };
 
 };
+
+}

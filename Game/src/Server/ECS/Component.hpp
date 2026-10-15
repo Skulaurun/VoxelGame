@@ -5,7 +5,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
-namespace Ecs {
+namespace Server::Ecs {
 
 struct Position {
     glm::vec3 value;

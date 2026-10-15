@@ -9,6 +9,8 @@
 
 #include <glm/glm.hpp>
 
+namespace Server {
+
 struct Chunk {
     constexpr static auto SIZE = WorldConfig::CHUNK_SIZE;
 
@@ -32,3 +34,5 @@ struct Chunk {
     glm::ivec3 position;
     VoxelGrid grid;
 };
+
+}

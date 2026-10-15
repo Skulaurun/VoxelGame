@@ -5,6 +5,8 @@
 
 #include <Engine/Noise.hpp>
 
+namespace Server {
+
 WorldGenerator::WorldGenerator(World& world, std::size_t threadCount) :
     m_world{world},
     m_running{true}
@@ -110,4 +112,6 @@ void WorldGenerator::doWork() {
             m_completedQueue.emplace_back(Chunk::State::Done, std::move(chunk));
         }
     }
+}
+
 }

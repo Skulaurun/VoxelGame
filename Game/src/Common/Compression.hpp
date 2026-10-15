@@ -50,10 +50,7 @@ auto compressRle(std::span<const Value> input) -> std::vector<Value> {
 
 template<typename Value>
     requires(std::is_integral_v<Value>)
-auto decompressRle(std::span<const Value> input, std::size_t outputLength) {
-    std::vector<Value> output = {};
-    output.resize(outputLength);
-
+void decompressRle(std::span<const Value> input, std::span<Value> output) {
     constexpr Value RLE_DUPLICATE{Value{0x0}};
     constexpr Value RLE_COPY{Value{0x1} << (sizeof(Value) * 8 - 1)};
     constexpr Value RLE_LENGTH{static_cast<Value>(~RLE_COPY)};
@@ -86,6 +83,4 @@ auto decompressRle(std::span<const Value> input, std::size_t outputLength) {
             }
         }
     }
-
-    return output;
 }

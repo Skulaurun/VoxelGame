@@ -5,8 +5,6 @@
 
 #include "Asio.hpp"
 
-// TODO: use virtual functions not variant probably....
-
 namespace Common::Network {
 
 class Connection : public std::enable_shared_from_this<Connection> {
@@ -28,8 +26,10 @@ class SocketConnection : public Connection {
 private:
     struct MessageHeader {
         uint32_t id;
-        uint32_t length;
+        uint32_t bodyLength;
     };
+
+    using Buffer = std::vector<uint8_t>;
 
 public:
     SocketConnection(TsQueue<Event>& queue, asio::io_context& context, asio::ip::tcp::socket socket);
@@ -53,9 +53,9 @@ protected:
 
 private:
     uint8_t m_headerIn[2 * sizeof(uint32_t)];
-    std::vector<uint8_t> m_bodyIn;
+    Buffer m_bodyIn;
 
-    TsQueue<std::shared_ptr<std::vector<uint8_t>>> m_queueOut;
+    TsQueue<Buffer> m_queueOut;
 
     asio::io_context& m_context;
     asio::ip::tcp::socket m_socket;

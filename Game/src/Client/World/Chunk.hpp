@@ -10,6 +10,10 @@
 
 #include <glm/glm.hpp>
 
+namespace Client {
+
+using ChunkId = uint64_t;
+
 struct Chunk {
     constexpr static auto SIZE = WorldConfig::CHUNK_SIZE;
 
@@ -21,12 +25,14 @@ struct Chunk {
     VoxelGrid grid;
 
     Mesh mesh;
-    //bool dirty;
+    bool dirty;
 
-    constexpr auto box() const -> Box3 {
+    constexpr static auto box(const glm::ivec3& position) -> Box3 {
         return {
             toWorldPosition(position, {0, 0, 0}),
             toWorldPosition(position, {SIZE, SIZE, SIZE})
         };
     }
 };
+
+}

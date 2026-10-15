@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Common/Serialization.hpp"
+
 #include <cstddef>
 #include <bit>
 #include <span>
@@ -7,18 +9,6 @@
 #include <stdexcept>
 
 namespace Common {
-
-template<typename Value>
-    requires(std::is_integral_v<Value> || std::is_floating_point_v<Value>)
-constexpr inline auto byteswap(Value value) {
-    if constexpr (std::same_as<Value, float>) {
-        return std::bit_cast<float>(std::byteswap(std::bit_cast<std::uint32_t>(value)));
-    } else if constexpr (std::same_as<Value, double>) {
-        return std::bit_cast<double>(std::byteswap(std::bit_cast<std::uint64_t>(value)));
-    } else {
-        return std::byteswap(value);
-    }
-}
 
 // TODO: consider splitting into ReadStream and WriteStream
 
@@ -28,7 +18,10 @@ class DataStream
 public:
     DataStream() : m_head{} {}
 
-    DataStream(const std::vector<std::byte>& data) : m_head{}, m_data{data} {}
+    DataStream(std::span<const std::byte> data) :
+        m_head{},
+        m_data{std::from_range, data}
+    {}
 
     template<typename Value>
         requires(std::is_integral_v<Value> || std::is_floating_point_v<Value>)
@@ -86,6 +79,8 @@ public:
     auto remaining() const { return m_data.size() - m_head; };
 
     auto head() const { return m_head; }
+
+    auto size() const { return m_data.size(); }
 
     auto data() -> auto& { return m_data; }
     auto data() const -> const auto& { return m_data; }

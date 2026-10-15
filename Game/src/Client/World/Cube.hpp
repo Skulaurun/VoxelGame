@@ -6,6 +6,8 @@
 
 // TODO: dedup vertices (3D)
 
+namespace Client {
+
 constexpr static std::array<glm::vec3, 6 * 4> CUBE_FACES{{
     // LEFT
     { 0.0f, 0.0f, 1.0f },
@@ -81,3 +83,5 @@ constexpr static std::array<glm::vec3, 6 * 4> CUBE_VERTEX_NORMALS{{
     { 0.0f, -1.0f, 0.0f },
     { 0.0f, -1.0f, 0.0f }
 }};
+
+}

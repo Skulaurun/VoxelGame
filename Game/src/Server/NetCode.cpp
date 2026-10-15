@@ -3,17 +3,19 @@
 
 #include <print>
 
+namespace Server {
+
 ServerHandler::ServerHandler(Server& server) :
     m_server{server}
 {}
 
 void ServerHandler::operator()(const Common::Network::Connect& event) {
-    std::println("ServerHandler: Connected to server");
+    std::println("ServerHandler: Client connected to server");
     m_server.addClient(event.connection);
 }
 
 void ServerHandler::operator()(const Common::Network::Disconnect& event) {
-    std::println("ServerHandler: Disconnected from server");
+    std::println("ServerHandler: Client disconnected from the server");
 }
 
 // TODO:
@@ -42,6 +44,8 @@ void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunk
     uint32_t chunkCount{};
     stream.advance(sizeof(chunkCount));
 
+    stream.write(chunkLoader.playerChunk());
+
     std::vector<glm::ivec3> toUnload{};
 
     for (const auto& chunkEvent : chunkLoader.chunkEvents()) {
@@ -64,4 +68,6 @@ void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunk
     stream.write(chunkCount);
 
     connection.send(message);
+}
+
 }

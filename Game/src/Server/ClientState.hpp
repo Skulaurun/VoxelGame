@@ -5,9 +5,13 @@
 
 #include <entt/entt.hpp>
 
+namespace Server {
+
 struct ClientState {
     entt::entity playerEntity;
     ChunkLoader chunkLoader;
 
     std::shared_ptr<Common::Network::Connection> connection;
 };
+
+}

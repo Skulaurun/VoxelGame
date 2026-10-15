@@ -3,6 +3,8 @@
 #include "Server/World/ChunkLoader.hpp"
 #include "Common/Network/Connection.hpp"
 
+namespace Server {
+
 class Server;
 
 // TODO: ServerHandler and ClientHandler are really similar,
@@ -23,3 +25,5 @@ private:
 };
 
 void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunkLoader);
+
+}

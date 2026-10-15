@@ -8,13 +8,15 @@
 
 #include <tracy/Tracy.hpp>
 
+namespace Client {
+
 void ChunkRenderer::render(const Frustum& frustum) {
     ZoneScoped;
 
     m_stats = {};
 
     for (const auto& renderable : m_renderables) {
-        if (renderable.enabled && renderable.indexCount != 0) {
+        if (renderable.chunkId != 0 && renderable.indexCount != 0) {
             if (!frustum.intersectsBox(renderable.boundingBox)) {
                 continue;
             }
@@ -24,24 +26,36 @@ void ChunkRenderer::render(const Frustum& frustum) {
     }
 }
 
-void ChunkRenderer::uploadMesh(const Mesh& mesh, std::size_t index) {
+void ChunkRenderer::loadMesh(ChunkId id, const Mesh& mesh) {
     ZoneScoped;
 
     if (mesh.indices.empty()) {
         return;
     }
 
-    auto vertexArray = m_renderables[index].vertexArray;
-    vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
-    vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
-    m_renderables[index].indexCount = mesh.indices.size();
-    m_renderables[index].boundingBox = mesh.boundingBox;
-    m_renderables[index].enabled = true;
+    for (std::size_t i = 0; i < m_renderables.size(); i++) {
+        auto& renderable = m_renderables[i];
+        if (renderable.chunkId == 0) {
+            auto& vertexArray = renderable.vertexArray;
+            vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
+            vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
+            renderable.indexCount = mesh.indices.size();
+            renderable.boundingBox = mesh.boundingBox;
+            renderable.chunkId = id;
+            return;
+        }
+    }
+    assert(false && "No empty slot for mesh");
 }
 
-void ChunkRenderer::setEnabled(std::size_t index, bool value) {
-    assert(index >= 0 && index < m_renderables.size());
-    m_renderables[index].enabled = value;
+void ChunkRenderer::unloadMesh(ChunkId id) {
+    for (std::size_t i = 0; i < m_renderables.size(); i++) {
+        if (m_renderables[i].chunkId == id) {
+            m_renderables[i].chunkId = 0;
+            return;
+        }
+    }
+    assert(false && "Tried to unload mesh with unknown id");
 }
 
 void ChunkRenderer::resize(uint32_t viewRange) {
@@ -67,4 +81,6 @@ void ChunkRenderer::resize(uint32_t viewRange) {
         vertexArray->setIndexBuffer(indexBuffer);
         m_renderables[i].vertexArray = vertexArray;
     }
+}
+
 }

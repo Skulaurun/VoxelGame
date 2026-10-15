@@ -2,6 +2,7 @@ add_executable(VoxelGame
     "Common/Network/Connection.cpp"
 
     "Client/Client.cpp"
+    "Client/World/World.cpp"
     "Client/NetCode.cpp"
     "Client/ChunkMesher.cpp"
     "Client/ChunkRenderer.cpp"

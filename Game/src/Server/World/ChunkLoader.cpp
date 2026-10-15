@@ -8,6 +8,8 @@
 
 #include <glm/gtx/norm.hpp>
 
+namespace Server {
+
 ChunkLoader::ChunkLoader(World& world) : m_world{world}, m_lastPlayerChunk{INT32_MAX, INT32_MAX, INT32_MAX} {}
 
 void ChunkLoader::update(const glm::vec3& playerPosition) {
@@ -86,4 +88,6 @@ void ChunkLoader::update(const glm::vec3& playerPosition) {
             m_chunkEvents.emplace_back(i, Event::Type::Load, slot.position);
         }
     }
+}
+
 }
