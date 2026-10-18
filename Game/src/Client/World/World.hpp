@@ -35,19 +35,18 @@ public:
     World& operator=(const World&) = delete;
 
     auto updateChunk(const glm::ivec3& position) -> Chunk&;
+    void deleteChunk(const glm::ivec3& position);
 
     template<typename Self>
-    auto chunkAt(this Self&& self, glm::ivec3 position)
-        -> std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const Chunk*, Chunk*> {
+    auto chunkAt(this Self&& self, glm::ivec3 position) {
         auto it = self.m_chunks.find(position);
-        return (it != self.m_chunks.end()) ? it->second.get() : nullptr;
+        return (it != self.m_chunks.end()) ? std::forward_like<Self&>(it->second).get() : nullptr;
     }
 
     template<typename Self>
-    auto voxelAt(this Self&& self, glm::ivec3 worldPosition)
-        -> std::conditional_t<std::is_const_v<std::remove_reference_t<Self>>, const Voxel*, Voxel*> {
+    auto voxelAt(this Self&& self, glm::ivec3 worldPosition) {
         auto* chunk = self.chunkAt(toChunkPosition(worldPosition));
-        return chunk ? chunk->grid.at(toLocalPosition(worldPosition)) : nullptr;
+        return chunk ? std::forward_like<Self&>(chunk->grid.at(toLocalPosition(worldPosition))) : nullptr;
     }
 
     auto setPlayerPosition(const WorldPosition& position) { m_playerPosition = position; }

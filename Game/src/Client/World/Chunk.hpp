@@ -12,8 +12,6 @@
 
 namespace Client {
 
-using ChunkId = uint64_t;
-
 struct Chunk {
     constexpr static auto SIZE = WorldConfig::CHUNK_SIZE;
 

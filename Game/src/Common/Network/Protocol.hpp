@@ -11,6 +11,7 @@ enum class MessageId : uint16_t {
     ChunkUpdate,
 
     // Client -> Server
+    PlayerMove,
 
     // Client <-> Server
 

@@ -13,4 +13,8 @@ auto World::updateChunk(const glm::ivec3& position) -> Chunk& {
     return *ptr;
 }
 
+void World::deleteChunk(const glm::ivec3& position) {
+    m_chunks.erase(position);
+}
+
 }

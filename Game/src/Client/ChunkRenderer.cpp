@@ -16,7 +16,7 @@ void ChunkRenderer::render(const Frustum& frustum) {
     m_stats = {};
 
     for (const auto& renderable : m_renderables) {
-        if (renderable.chunkId != 0 && renderable.indexCount != 0) {
+        if (renderable.indexCount != 0) {
             if (!frustum.intersectsBox(renderable.boundingBox)) {
                 continue;
             }
@@ -26,36 +26,50 @@ void ChunkRenderer::render(const Frustum& frustum) {
     }
 }
 
-void ChunkRenderer::loadMesh(ChunkId id, const Mesh& mesh) {
+void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
     ZoneScoped;
 
     if (mesh.indices.empty()) {
         return;
     }
 
-    for (std::size_t i = 0; i < m_renderables.size(); i++) {
-        auto& renderable = m_renderables[i];
-        if (renderable.chunkId == 0) {
-            auto& vertexArray = renderable.vertexArray;
-            vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
-            vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
-            renderable.indexCount = mesh.indices.size();
-            renderable.boundingBox = mesh.boundingBox;
-            renderable.chunkId = id;
-            return;
+    std::size_t index{};
+    auto it = m_chunkIndices.find(position);
+    if (it != m_chunkIndices.end()) {
+        index = it->second;
+    } else {
+        if (m_freeIndices.empty()) {
+            for (std::size_t i = 0; i < m_renderables.size(); i++) {
+                if (m_renderables[i].empty) {
+                    index = i;
+                    break;
+                }
+            }
+        } else [[likely]] {
+            index = m_freeIndices.front();
+            m_freeIndices.pop_front();
         }
     }
-    assert(false && "No empty slot for mesh");
+
+    m_chunkIndices[position] = index;
+
+    auto& renderable = m_renderables[index];
+    auto& vertexArray = renderable.vertexArray;
+    vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
+    vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
+    renderable.indexCount = mesh.indices.size();
+    renderable.boundingBox = mesh.boundingBox;
+    renderable.empty = false;
 }
 
-void ChunkRenderer::unloadMesh(ChunkId id) {
-    for (std::size_t i = 0; i < m_renderables.size(); i++) {
-        if (m_renderables[i].chunkId == id) {
-            m_renderables[i].chunkId = 0;
-            return;
-        }
+void ChunkRenderer::unloadMesh(const glm::ivec3& position) {
+    auto it = m_chunkIndices.find(position);
+    if (it != m_chunkIndices.end()) {
+        m_renderables[it->second].indexCount = 0;
+        m_renderables[it->second].empty = true;
+        m_freeIndices.emplace_back(it->second);
+        m_chunkIndices.erase(position);
     }
-    assert(false && "Tried to unload mesh with unknown id");
 }
 
 void ChunkRenderer::resize(uint32_t viewRange) {

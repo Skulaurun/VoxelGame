@@ -45,6 +45,11 @@ void Server::addClient(std::shared_ptr<Common::Network::Connection> connection) 
     client.chunkLoader.resize(side * side * side);
 }
 
+auto Server::findClient(std::shared_ptr<Common::Network::Connection> connection) -> ClientState* {
+    auto it = std::ranges::find(m_clients, connection, &ClientState::connection);
+    return (it != m_clients.end()) ? &*it : nullptr;
+}
+
 void Server::update() {
     m_world.generator().update();
 

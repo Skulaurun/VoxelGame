@@ -35,4 +35,33 @@ struct Disconnect {
 
 using Event = std::variant<Connect, Disconnect, IncomingMessage>;
 
+template<typename Handler>
+using MessageCallback = void(Handler::*)(std::shared_ptr<Connection>, ProtocolStream&);
+
+template<typename Handler>
+class MessageCallbackMap {
+
+public:
+    void operator()(Handler& handler, IncomingMessage& message) const {
+        if (message.id > MessageId::_Unknown_ && message.id < MessageId::_Count_) {
+            (handler.*data[handlerIndex(message.id)])(message.sender, message.stream);
+        }
+    }
+
+    constexpr auto operator[](MessageId id) -> auto& {
+        return data[handlerIndex(id)];
+    }
+
+    constexpr auto operator[](MessageId id) const -> const auto& {
+        return data[handlerIndex(id)];
+    }
+
+    constexpr static auto handlerIndex(MessageId id) -> std::size_t {
+        return static_cast<std::size_t>(id);
+    };
+
+private:
+    std::array<MessageCallback<Handler>, 1u << 16> data;
+};
+
 }

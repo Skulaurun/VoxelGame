@@ -41,7 +41,7 @@ void ChunkMesher::doWork(std::stop_token token) {
         mesh(task->grid, task->position, chunkMesh);
 
         {
-            std::scoped_lock lock {m_completedMutex};
+            std::scoped_lock lock{m_completedMutex};
             m_completedQueue.emplace_back(task->position, std::move(chunkMesh));
         }
     }
@@ -75,6 +75,8 @@ constexpr auto ROW_STRIDE = std::array{
 };
 
 void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid) {
+    ZoneScoped;
+
     // FIXME: missing corners for ao
     // This needs to be consistent with FACE_OFFSETS
     constexpr auto NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
@@ -128,6 +130,8 @@ void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& gri
 }
 
 void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunkPosition, Mesh& mesh) {
+    ZoneScoped;
+
     mesh.indices.clear();
     mesh.vertices.clear();
 

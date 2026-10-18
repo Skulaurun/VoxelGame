@@ -216,8 +216,10 @@ void Client::update(const float dt) {
     m_netClient.update();
 
     m_chunkMesher.drain([this](ChunkMesher::Result& result) {
-        // TODO: move mesh to World
-        m_chunkRenderer.loadMesh(static_cast<ChunkId>(std::hash<glm::ivec3>{}(result.position)), result.mesh);
+        if (auto* chunk = m_world.chunkAt(result.position)) {
+            m_chunkRenderer.loadMesh(result.position, result.mesh);
+            chunk->mesh = std::move(result.mesh);
+        }
     });
 
     // [= User input =]
@@ -228,6 +230,14 @@ void Client::update(const float dt) {
 
     // TODO: temporary solution
     m_world.setPlayerPosition(m_camera.position());
+
+    // TODO: temporary solution
+    {
+        Common::Network::Message message{ .id = Common::Network::MessageId::PlayerMove };
+        Common::Network::ProtocolStream& stream = message.stream;
+        stream.write(m_camera.position());
+        m_netClient.send(message);
+    }
 
     // [= Render Scene =]
 

@@ -8,8 +8,13 @@
 
 #include <Engine/Mesh.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/vec3.hpp>
+#include <glm/gtx/hash.hpp>
+
 #include <vector>
 #include <memory>
+#include <deque>
 
 class Frustum;
 
@@ -19,8 +24,8 @@ class ChunkRenderer {
 
 public:
     struct Renderable {
-        ChunkId chunkId = 0;
-        uint32_t indexCount = 0;
+        bool empty{true};
+        uint32_t indexCount{0};
         std::shared_ptr<VertexArray> vertexArray;
         Box3 boundingBox;
     };
@@ -33,8 +38,8 @@ public:
 
     void render(const Frustum& frustum);
 
-    void loadMesh(ChunkId id, const Mesh& mesh);
-    void unloadMesh(ChunkId id);
+    void loadMesh(const glm::ivec3& position, const Mesh& mesh);
+    void unloadMesh(const glm::ivec3& position);
 
     void resize(uint32_t viewRange);
 
@@ -44,6 +49,9 @@ public:
 private:
     uint32_t m_viewRange;
     std::vector<Renderable> m_renderables;
+
+    std::deque<std::size_t> m_freeIndices;
+    std::unordered_map<glm::ivec3, std::size_t> m_chunkIndices;
 
     Statistics m_stats;
 

@@ -18,12 +18,30 @@ void ClientHandler::operator()(const Common::Network::Disconnect& message) {
     std::println("ClientHandler: Disconnected from server");
 }
 
+void ClientHandler::operator()(Common::Network::IncomingMessage& message) {
+    MESSAGE_CALLBACK_MAP(*this, message);
+}
+
 void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+    uint32_t unloadCount{};
+    stream.read(unloadCount);
+
+    for (uint32_t i = 0; i < unloadCount; i++) {
+        glm::ivec3 position{};
+        stream.read(position);
+
+        // TODO:
+        // m_chunkManager.unload();
+        if (auto* chunk = m_client.world().chunkAt(position)) {
+            //if (!chunk->mesh.indices.empty()) {
+                m_client.chunkRenderer().unloadMesh(position);
+            //}
+            m_client.world().deleteChunk(position);
+        }
+    }
+
     uint32_t loadCount{};
     stream.read(loadCount);
-
-    glm::vec3 playerChunk{};
-    stream.read(playerChunk);
 
     for (uint32_t i = 0; i < loadCount; i++) {
         glm::ivec3 position{};
@@ -32,29 +50,13 @@ void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> s
         auto chunk = m_client.world().updateChunk(position);
         stream.read(chunk.grid);
 
-        // TODO: debug
-        m_client.chunkMesher().enqueue(chunk);
-
+        // TODO:
         // m_chunkManager.load();
+        m_client.chunkMesher().enqueue(chunk);
     }
 
-    uint32_t unloadCount{};
-    stream.read(unloadCount);
-
-    for (uint32_t i = 0; i < unloadCount; i++) {
-        glm::ivec3 position{};
-        stream.read(position);
-
-        m_client.chunkRenderer().unloadMesh(static_cast<ChunkId>(std::hash<glm::ivec3>{}(position)));
-
-        // m_chunkManager.unload();
-    }
-}
-
-void ClientHandler::operator()(Common::Network::IncomingMessage& message) {
-    if (message.id > Common::Network::MessageId::_Unknown_ && message.id < Common::Network::MessageId::_Count_) {
-        (this->*MESSAGE_HANDLER_MAP[handlerIndex(message.id)])(message.sender, message.stream);
-    }
+    glm::vec3 playerChunk{};
+    stream.read(playerChunk);
 }
 
 }

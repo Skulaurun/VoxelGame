@@ -32,9 +32,13 @@ public:
     void addClient(std::shared_ptr<Common::Network::Connection> connection);
     void removeClient();
 
+    auto findClient(std::shared_ptr<Common::Network::Connection> connection) -> ClientState*;
+
     void run();
     void update();
     void stop();
+
+    auto registry() -> auto& { return m_registry; }
 
     auto netServer() -> auto& { return m_netServer; }
 

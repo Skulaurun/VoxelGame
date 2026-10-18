@@ -17,10 +17,20 @@ public:
 
     void operator()(const Common::Network::Connect& event);
     void operator()(const Common::Network::Disconnect& event);
-    void operator()(const Common::Network::IncomingMessage& event);
+    void operator()(Common::Network::IncomingMessage& message);
 
 private:
     Server& m_server;
+
+    void onPlayerMove(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
+
+    constexpr static auto MESSAGE_CALLBACK_MAP = []() {
+        Common::Network::MessageCallbackMap<ServerHandler> idToHandler{};
+
+        idToHandler[Common::Network::MessageId::PlayerMove] = &ServerHandler::onPlayerMove;
+
+        return idToHandler;
+    }();
 
 };
 

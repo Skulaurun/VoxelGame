@@ -174,7 +174,7 @@ void InternalConnection::send(const Message& message) {
         connection->m_queueIn.pushBack(IncomingMessage{
             message.id,
             ProtocolStream{ message.stream.data() },
-            sharedFromThis()
+            connection
         });
     }
 }
