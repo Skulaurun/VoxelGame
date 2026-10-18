@@ -23,7 +23,7 @@ struct Chunk {
     VoxelGrid grid;
 
     Mesh mesh;
-    bool dirty;
+    uint8_t neighborCount{0};
 
     constexpr static auto box(const glm::ivec3& position) -> Box3 {
         return {

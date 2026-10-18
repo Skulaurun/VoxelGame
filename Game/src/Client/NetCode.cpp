@@ -47,12 +47,12 @@ void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> s
         glm::ivec3 position{};
         stream.read(position);
 
-        auto chunk = m_client.world().updateChunk(position);
+        auto& chunk = m_client.world().updateChunk(position);
         stream.read(chunk.grid);
 
         // TODO:
         // m_chunkManager.load();
-        m_client.chunkMesher().enqueue(chunk);
+        m_client.chunkMesher().process(chunk);
     }
 
     glm::vec3 playerChunk{};

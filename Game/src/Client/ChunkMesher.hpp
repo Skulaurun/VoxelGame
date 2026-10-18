@@ -29,7 +29,7 @@ public:
 public:
     ChunkMesher(World& world);
 
-    void enqueue(const Chunk& chunk);
+    void process(Chunk& chunk);
 
     void drain(std::invocable<Result&> auto drainer) {
         std::scoped_lock lock{m_completedMutex};
@@ -40,10 +40,9 @@ public:
     }
 
 private:
+    void enqueue(const Chunk& chunk);
     void copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid);
-
     void mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunkPosition, Mesh& mesh);
-
     void doWork(std::stop_token token);
 
 private:

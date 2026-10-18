@@ -14,6 +14,46 @@ ChunkMesher::ChunkMesher(World& world) :
     m_thread{std::bind_front(&ChunkMesher::doWork, this)}
 {}
 
+constexpr auto FULL_NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
+    {-1, 0, 0}, {0, -1, 0}, {0, 0, -1},
+    {1, 0, 0}, {0, 1, 0}, {0, 0, 1},
+    {-1, 1, 0}, {-1, 0, 1}, {-1, -1, 0},
+    {-1, 0, -1}, {-1, 1, -1}, {-1, -1, 1},
+    {-1, 1, 1}, {1, -1, 0}, {0, -1, 1},
+    {0, -1, -1}, {1, -1, -1}, {1, -1, 1},
+    {1, 1, -1}, {1, 0, -1}, {0, 1, -1},
+    {-1, -1, -1}, {1, 1, 1}, {1, 1, 0},
+    {1, 0, 1}, {0, 1, 1}
+});
+
+constexpr uint32_t REQUIRED_NEIGHBOR_COUNT{FULL_NEIGHBOR_OFFSETS.size()};
+
+template<std::invocable<Chunk&> Fn>
+static void forEachNeighbor(World& world, const glm::ivec3& position, Fn fn) {
+    for (std::size_t i = 0; i < FULL_NEIGHBOR_OFFSETS.size(); i++) {
+        auto* chunk = world.chunkAt(position + FULL_NEIGHBOR_OFFSETS[i]);
+        if (chunk) {
+            fn(*chunk);
+        }
+    }
+}
+
+void ChunkMesher::process(Chunk& chunk) {
+    chunk.neighborCount = 0;
+    forEachNeighbor(m_world, chunk.position, [this, &chunk](Chunk& neighbor) {
+        chunk.neighborCount = std::min(chunk.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
+        neighbor.neighborCount = std::min(neighbor.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
+
+        if (neighbor.neighborCount == REQUIRED_NEIGHBOR_COUNT) {
+            enqueue(neighbor);
+        }
+    });
+
+    if (chunk.neighborCount == REQUIRED_NEIGHBOR_COUNT) {
+        enqueue(chunk);
+    }
+}
+
 void ChunkMesher::enqueue(const Chunk& chunk) {
     std::scoped_lock lock{m_mutex};
 
@@ -74,11 +114,11 @@ constexpr auto ROW_STRIDE = std::array{
     Size * Size, Size, Size * Size
 };
 
+// FIXME: doesnt work (probably)
 void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid) {
     ZoneScoped;
 
     // FIXME: missing corners for ao
-    // This needs to be consistent with FACE_OFFSETS
     constexpr auto NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
         {-1, 0, 0}, // left
         {0, -1, 0}, // bottom
@@ -88,6 +128,7 @@ void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& gri
         {0, 0, 1}   // front
     });
 
+    // This needs to be consistent with NEIGHBOR_OFFSETS
     constexpr auto FACE_OFFSETS = std::array{
         grid.indexOf({0, 1, 1}),
         grid.indexOf({1, 0, 1}),
@@ -217,112 +258,3 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
 }
 
 }
-
-// void ChunkMesher::generate(Chunk& chunk, glm::vec3 offset) {
-//     ZoneScoped;
-
-//     // NOTE: Static only for performance test before
-//     static VoxelGrid<TEMP_SIZE> temporary{};
-
-//     // TODO: Do axes matter? (switching + and - didn't do a thing?)
-//     std::array<Chunk*, 7> chunks = {
-//         // left
-//         m_world.getChunkAt(chunk.position + glm::ivec3(-1, 0, 0)),
-//         // right
-//         m_world.getChunkAt(chunk.position + glm::ivec3(1, 0, 0)),
-//         // front
-//         m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, 1)),
-//         // back
-//         m_world.getChunkAt(chunk.position + glm::ivec3(0, 0, -1)),
-//         // top
-//         m_world.getChunkAt(chunk.position + glm::ivec3(0, 1, 0)),
-//         // bottom
-//         m_world.getChunkAt(chunk.position + glm::ivec3(0, -1, 0))
-//     };
-
-//     // X Axis
-//     if (chunks[0]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1)] = *chunks[0]->grid.at({ SIZE - 1, i, j });
-//             }
-//         }
-//     }
-//     if (chunks[1]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (TEMP_SIZE - 1) * TEMP_SIZE + (j + 1)] = *chunks[1]->grid.at({ 0, i, j });
-//             }
-//         }
-//     }
-
-//     // Z Axis
-//     if (chunks[2]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1) * TEMP_SIZE + (TEMP_SIZE - 1)] = *chunks[2]->grid.at({ j, i, 0 });
-//             }
-//         }
-//     }
-//     if (chunks[3]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1) * TEMP_SIZE] = *chunks[3]->grid.at({ j, i, SIZE - 1 });
-//             }
-//         }
-//     }
-
-//     // Y Axis
-//     if (chunks[4]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(TEMP_SIZE - 1) * TEMP_SIZE * TEMP_SIZE + (i + 1) * TEMP_SIZE + (j + 1)] = *chunks[4]->grid.at({ i, 0, j });
-//             }
-//         }
-//     }
-//     if (chunks[5]) {
-//         for (std::size_t i = 0; i < SIZE; i++) {
-//             for (std::size_t j = 0; j < SIZE; j++) {
-//                 temporary[(i + 1) * TEMP_SIZE + (j + 1)] = *chunks[5]->grid.at({ i, SIZE - 1, j });
-//             }
-//         }
-//     }
-
-//     for (std::size_t i = 0; i < SIZE; i++) {
-//         for (std::size_t j = 0; j < SIZE; j++) {
-//             for (std::size_t k = 0; k < SIZE; k++) {
-//                 temporary[(i + 1) * TEMP_SIZE * TEMP_SIZE + (j + 1) * TEMP_SIZE + (k + 1)] = chunk.grid[i * SIZE * SIZE + j * SIZE + k];
-//             }
-//         }
-//     }
-// }
-
-// {
-// ZoneScopedN("Process loaded chunks");
-
-// const auto& loadedChunks = chunkManager.loadedChunks();
-
-// for (const auto& chunkEvent : chunkManager.chunkEvents()) {
-//     if (chunkEvent.type == ChunkManager::Event::Type::Load) {
-//         Chunk* chunk = loadedChunks[chunkEvent.id].chunk;
-//         if (chunk->mesh().indices.size() == 0) {
-//             chunk->generateMesh(chunk->position() * Chunk::SIZE);
-//         }
-//         m_chunkRenderer.uploadMesh(chunk->mesh(), chunkEvent.id);
-//     }
-//     if (chunkEvent.type == ChunkManager::Event::Type::Unload) {
-//         m_chunkRenderer.setEnabled(chunkEvent.id, false);
-//     }
-// }
-
-// for (const auto& chunkRef : loadedChunks) {
-//     if (chunkRef.isOccupied() && chunkRef.chunk->isDirty()) {
-//         // Update chunk
-//         Chunk* chunk = chunkRef.chunk;
-//         chunk->generateMesh(chunk->position() * Chunk::SIZE);
-//         chunk->setDirty(false);
-
-//         m_chunkRenderer.uploadMesh(chunk->mesh(), chunkRef.index);
-//     }
-// }
-// }

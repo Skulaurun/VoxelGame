@@ -9,7 +9,6 @@ auto World::updateChunk(const glm::ivec3& position) -> Chunk& {
     if (!ptr) {
         ptr = std::make_unique<Chunk>(position);
     }
-    ptr->dirty = true;
     return *ptr;
 }
 
