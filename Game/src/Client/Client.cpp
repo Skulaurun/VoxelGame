@@ -87,12 +87,16 @@ Client::Client() :
 
     m_netClient.start();
 
-    // Singleplayer only
-    m_internalServer = std::make_unique<Server::Server>();
-    m_serverThread = std::jthread{[this] {
-        m_internalServer->run();
-    }};
-    m_internalServer->netServer().connect(m_netClient.createConnection());
+    if (true) {
+        // Singleplayer only
+        m_internalServer = std::make_unique<Server::Server>();
+        m_serverThread = std::jthread{[this] {
+            m_internalServer->run();
+        }};
+        m_internalServer->netServer().connect(m_netClient.createConnection());
+    } else {
+        m_netClient.connect("127.0.0.1", 5500);
+    }
 }
 
 Client::~Client() {
@@ -109,8 +113,11 @@ Client::~Client() {
 }
 
 void Client::onFrameBufferSize(GLFWwindow* window, int width, int height) {
-    //glViewport(0, 0, width, height);
+    if (width == 0 || height == 0) {
+        return;
+    }
 
+    Renderer::setViewport({ width, height });
     m_camera.setAspectRatio(width / static_cast<float>(height));
 }
 
@@ -228,11 +235,7 @@ void Client::update(const float dt) {
 
     m_frustum.update(m_camera.viewProjection());
 
-    // TODO: temporary solution
-    m_world.setPlayerPosition(m_camera.position());
-
-    // TODO: temporary solution
-    {
+    { // TODO: temporary solution
         Common::Network::Message message{ .id = Common::Network::MessageId::PlayerMove };
         Common::Network::ProtocolStream& stream = message.stream;
         stream.write(m_camera.position());

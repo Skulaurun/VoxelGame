@@ -27,3 +27,7 @@ void Renderer::draw(const VertexArray& vertexArray, uint32_t indexCount) {
     vertexArray.bind();
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
 }
+
+void Renderer::setViewport(const glm::ivec2& size, const glm::ivec2& lowerLeftCorner) {
+    glViewport(lowerLeftCorner.x, lowerLeftCorner.y, size.x, size.y);
+}

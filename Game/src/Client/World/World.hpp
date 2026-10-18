@@ -49,15 +49,8 @@ public:
         return chunk ? std::forward_like<Self&>(chunk->grid.at(toLocalPosition(worldPosition))) : nullptr;
     }
 
-    auto setPlayerPosition(const WorldPosition& position) { m_playerPosition = position; }
-
-    auto playerPosition() const { return m_playerPosition; }
-
 private:
     ChunkMap m_chunks;
-
-    // TODO: temporary solution
-    WorldPosition m_playerPosition;
 
 };
 

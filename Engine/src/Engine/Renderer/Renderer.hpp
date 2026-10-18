@@ -22,4 +22,6 @@ public:
 
     static void draw(const VertexArray& vertexArray, uint32_t indexCount);
 
+    static void setViewport(const glm::ivec2& size, const glm::ivec2& lowerLeftCorner = {});
+
 };
