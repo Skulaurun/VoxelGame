@@ -14,7 +14,7 @@ ChunkMesher::ChunkMesher(World& world) :
     m_thread{std::bind_front(&ChunkMesher::doWork, this)}
 {}
 
-constexpr auto FULL_NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
+constexpr auto NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
     {-1, 0, 0}, {0, -1, 0}, {0, 0, -1},
     {1, 0, 0}, {0, 1, 0}, {0, 0, 1},
     {-1, 1, 0}, {-1, 0, 1}, {-1, -1, 0},
@@ -26,12 +26,49 @@ constexpr auto FULL_NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
     {1, 0, 1}, {0, 1, 1}
 });
 
-constexpr uint32_t REQUIRED_NEIGHBOR_COUNT{FULL_NEIGHBOR_OFFSETS.size()};
+constexpr uint32_t REQUIRED_NEIGHBOR_COUNT{NEIGHBOR_OFFSETS.size()};
+
+struct CopyPattern {
+    glm::ivec3 counts;
+    int32_t srcOffset;
+    int32_t dstOffset;
+};
+
+template<int32_t SrcChunkSize, int32_t DstChunkSize, std::size_t NeighborCount>
+    requires(DstChunkSize - SrcChunkSize == 2)
+constexpr auto createCopyPatterns(const std::array<glm::ivec3, NeighborCount>& offsets) {
+    auto src = [](int32_t offset) constexpr {
+        return offset < 0 ? (SrcChunkSize - 1) : 0;
+    };
+    auto dst = [](int32_t offset) constexpr {
+        constexpr auto PADDING{1};
+        return (offset < 0) ? 0 : (offset > 0 ? DstChunkSize - 1 : PADDING);
+    };
+
+    std::array<CopyPattern, NeighborCount> patterns{};
+    for (std::size_t i = 0; i < NeighborCount; i++) {
+        const auto& offset = offsets[i];
+        patterns[i] = {
+            {
+                offset.x == 0 ? SrcChunkSize : 1,
+                offset.y == 0 ? SrcChunkSize : 1,
+                offset.z == 0 ? SrcChunkSize : 1
+            },
+            VoxelGrid<SrcChunkSize>::indexOf({
+                src(offset.x), src(offset.y), src(offset.z)
+            }),
+            VoxelGrid<DstChunkSize>::indexOf({
+                dst(offset.x), dst(offset.y), dst(offset.z)
+            })
+        };
+    }
+    return patterns;
+}
 
 template<std::invocable<Chunk&> Fn>
 static void forEachNeighbor(World& world, const glm::ivec3& position, Fn fn) {
-    for (std::size_t i = 0; i < FULL_NEIGHBOR_OFFSETS.size(); i++) {
-        auto* chunk = world.chunkAt(position + FULL_NEIGHBOR_OFFSETS[i]);
+    for (std::size_t i = 0; i < NEIGHBOR_OFFSETS.size(); i++) {
+        auto* chunk = world.chunkAt(position + NEIGHBOR_OFFSETS[i]);
         if (chunk) {
             fn(*chunk);
         }
@@ -87,77 +124,32 @@ void ChunkMesher::doWork(std::stop_token token) {
     }
 }
 
-// // X
-// int32_t x{}; // 0, temp_size - 1
-// int32_t y{}; // i
-// int32_t z{}; // j
-
-// // Y
-// int32_t x{}; // i
-// int32_t y{}; // 0, temp_size - 1
-// int32_t z{}; // j
-
-// // Z
-// int32_t x{}; // j
-// int32_t y{}; // i
-// int32_t z{}; // 0, temp_size - 1
-
-template<int32_t Size>
-constexpr auto ELEMENT_STRIDE = std::array{
-    1, 1, Size,
-    1, 1, Size
-};
-
-template<int32_t Size>
-constexpr auto ROW_STRIDE = std::array{
-    Size * Size, Size, Size * Size,
-    Size * Size, Size, Size * Size
-};
-
-// FIXME: doesnt work (probably)
 void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid) {
     ZoneScoped;
 
-    // FIXME: missing corners for ao
-    constexpr auto NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
-        {-1, 0, 0}, // left
-        {0, -1, 0}, // bottom
-        {0, 0, -1}, // back
-        {1, 0, 0},  // right
-        {0, 1, 0},  // top
-        {0, 0, 1}   // front
+    // TODO: ao (26 neighborhood might not be needed)
+    constexpr auto NEIGHBORHOOD_6 = std::to_array<glm::ivec3>({
+        {-1, 0, 0},
+        {1, 0, 0},
+        {0, 0, 1},
+        {0, 0, -1},
+        {0, 1, 0},
+        {0, -1, 0}
     });
 
-    // This needs to be consistent with NEIGHBOR_OFFSETS
-    constexpr auto FACE_OFFSETS = std::array{
-        grid.indexOf({0, 1, 1}),
-        grid.indexOf({1, 0, 1}),
-        grid.indexOf({1, 1, 0}),
+    constexpr auto COPY_PATTERNS = createCopyPatterns<Chunk::SIZE, TEMP_SIZE>(NEIGHBORHOOD_6);
 
-        grid.indexOf({TEMP_SIZE - 1, 1, 1}),
-        grid.indexOf({1, TEMP_SIZE - 1, 1}),
-        grid.indexOf({1, 1, TEMP_SIZE - 1})
-    };
-
-    for (int32_t n = 0; n < FACE_OFFSETS.size(); n++) {
-        Chunk* neighbor = m_world.chunkAt(chunk.position + NEIGHBOR_OFFSETS[n]);
+    for (int32_t i = 0; i < NEIGHBORHOOD_6.size(); i++) {
+        Chunk* neighbor = m_world.chunkAt(chunk.position + NEIGHBORHOOD_6[i]);
         if (!neighbor) continue;
 
-        int32_t i1 = FACE_OFFSETS[n];
-        int32_t i2 = 0;
-
-        for (int32_t i = 0; i < Chunk::SIZE; i++) {
-            for (int32_t j = 0; j < Chunk::SIZE; j++) {
-                grid[i1] = neighbor->grid[i2];
-
-                i1 += ELEMENT_STRIDE<TEMP_SIZE>[n];
-                i2 += ELEMENT_STRIDE<Chunk::SIZE>[n];
+        for (int32_t y = 0; y < COPY_PATTERNS[i].counts.y; y++) {
+            for (int32_t x = 0; x < COPY_PATTERNS[i].counts.x; x++) {
+                for (int32_t z = 0; z < COPY_PATTERNS[i].counts.z; z++) {
+                    grid[COPY_PATTERNS[i].dstOffset + grid.indexOf({x, y, z})]
+                        = neighbor->grid[COPY_PATTERNS[i].srcOffset + neighbor->grid.indexOf({x, y, z})];
+                }
             }
-            i1 -= ELEMENT_STRIDE<TEMP_SIZE>[n] * Chunk::SIZE;
-            i1 += ROW_STRIDE<TEMP_SIZE>[n];
-
-            i2 -= ELEMENT_STRIDE<Chunk::SIZE>[n] * Chunk::SIZE;
-            i2 += ROW_STRIDE<Chunk::SIZE>[n];
         }
     }
 
