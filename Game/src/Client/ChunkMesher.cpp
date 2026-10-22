@@ -127,20 +127,10 @@ void ChunkMesher::doWork(std::stop_token token) {
 void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid) {
     ZoneScoped;
 
-    // TODO: ao (26 neighborhood might not be needed)
-    constexpr auto NEIGHBORHOOD_6 = std::to_array<glm::ivec3>({
-        {-1, 0, 0},
-        {1, 0, 0},
-        {0, 0, 1},
-        {0, 0, -1},
-        {0, 1, 0},
-        {0, -1, 0}
-    });
+    constexpr auto COPY_PATTERNS = createCopyPatterns<Chunk::SIZE, TEMP_SIZE>(NEIGHBOR_OFFSETS);
 
-    constexpr auto COPY_PATTERNS = createCopyPatterns<Chunk::SIZE, TEMP_SIZE>(NEIGHBORHOOD_6);
-
-    for (int32_t i = 0; i < NEIGHBORHOOD_6.size(); i++) {
-        Chunk* neighbor = m_world.chunkAt(chunk.position + NEIGHBORHOOD_6[i]);
+    for (int32_t i = 0; i < NEIGHBOR_OFFSETS.size(); i++) {
+        Chunk* neighbor = m_world.chunkAt(chunk.position + NEIGHBOR_OFFSETS[i]);
         if (!neighbor) continue;
 
         for (int32_t y = 0; y < COPY_PATTERNS[i].counts.y; y++) {
@@ -236,7 +226,7 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
                                 color = { 0.2f, 0.85f, 0.25f, 1.0f };
                             }
 
-                            mesh.vertices.emplace_back(Vertex{ position, color, glm::vec2{}, 0.0f, ao });
+                            mesh.vertices.emplace_back(Vertex{ position, normal, color, glm::vec2{}, 0.0f, ao });
                         }
                         quadCount++;
                     }

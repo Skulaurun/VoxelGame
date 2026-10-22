@@ -12,14 +12,13 @@ class Context {
 
 public:
     Context(std::shared_ptr<Handler> handler) :
-        m_handler{handler}
+        m_handler{handler},
+        m_workGuard{asio::make_work_guard(m_context)}
     {}
 
     ~Context() {
         stop();
     }
-
-    // FIXME: idle work?
 
     void start() {
         m_thread = std::jthread([this] {
@@ -28,6 +27,7 @@ public:
     }
 
     void stop() {
+        m_workGuard.reset();
         m_context.stop();
     }
 
@@ -52,6 +52,7 @@ private:
     TsQueue<Event> m_queueIn;
     std::jthread m_thread;
     asio::io_context m_context;
+    asio::executor_work_guard<asio::io_context::executor_type> m_workGuard;
 
     std::shared_ptr<Handler> m_handler;
 

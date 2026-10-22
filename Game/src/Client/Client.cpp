@@ -4,6 +4,8 @@
 
 #include "Server/Server.hpp"
 
+#include <Engine/Renderer/OpenGL/FrameBuffer.hpp>
+
 #include <GLFW/glfw3.h>
 
 #include <imgui.h>
@@ -64,13 +66,35 @@ Client::Client() :
 
     Renderer::init();
 
-    // TODO:
-    m_chunkRenderer.resize(8);
+    m_frameBuffer = std::make_unique<FrameBuffer>(FrameBuffer::Specification{
+        static_cast<uint32_t>(DEFAULT_WINDOW_SIZE.x),
+        static_cast<uint32_t>(DEFAULT_WINDOW_SIZE.y),
+        {
+            { PixelType::Float16 },
+            { PixelType::Color8 }
+        },
+        { PixelType::Depth24 }
+    });
+
+    m_screenTriangle = std::make_unique<VertexArray>();
 
     m_defaultShader = std::make_unique<Shader>(std::vector<ShaderSource>{
         { ShaderType::Vertex, embedView(ShaderFile::defaultVertex) },
         { ShaderType::Fragment, embedView(ShaderFile::defaultFragment) },
     });
+
+    m_lightingShader = std::make_unique<Shader>(std::vector<ShaderSource>{
+        { ShaderType::Vertex, embedView(ShaderFile::lightingVertex) },
+        { ShaderType::Fragment, embedView(ShaderFile::lightingFragment) },
+    });
+
+    m_lightingShader->bind();
+    m_lightingShader->setUniform("uNormal", 0);
+    m_lightingShader->setUniform("uAlbedo", 1);
+    m_lightingShader->setUniform("uDepth", 2);
+
+    // TODO:
+    m_chunkRenderer.resize(8);
 
     // ImGui init
 
@@ -119,6 +143,7 @@ void Client::onFrameBufferSize(GLFWwindow* window, int width, int height) {
 
     Renderer::setViewport({ width, height });
     m_camera.setAspectRatio(width / static_cast<float>(height));
+    m_frameBuffer->resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
 void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
@@ -244,12 +269,33 @@ void Client::update(const float dt) {
 
     // [= Render Scene =]
 
-    Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
+    { // Geometry pass
+        m_frameBuffer->bind();
 
-    m_defaultShader->bind();
-    m_defaultShader->setUniform("uViewProjection", m_camera.viewProjection());
+        Renderer::clear({ 0.0f, 0.0f, 0.0f, 0.0f });
 
-    m_chunkRenderer.render(m_frustum);
+        m_defaultShader->bind();
+        m_defaultShader->setUniform("uViewProjection", m_camera.viewProjection());
+
+        m_chunkRenderer.render(m_frustum);
+
+        m_frameBuffer->unbind();
+    }
+
+    { // Lighting pass
+        // FIXME: does nothing
+        Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
+    
+        m_lightingShader->bind();
+        m_lightingShader->setUniform("uSunDirection", glm::normalize(glm::vec3{ 0.4f, 0.8f, 0.3f }));
+        m_lightingShader->setUniform("uSunColor", glm::vec3{1.0f, 0.95f, 0.85f});
+        m_lightingShader->setUniform("uAmbientColor", glm::vec3{0.20f, 0.25f, 0.35f});
+        m_lightingShader->setUniform("uSunIntensity", 1.0f);
+        m_frameBuffer->bindAttachments();
+
+        m_screenTriangle->bind();
+        Renderer::draw(3);
+    }
     
     // [= Render UI =]
 

@@ -64,6 +64,10 @@ public:
         return m_queue.front();
     }
 
+    auto size() const -> std::size_t {
+        return m_queue.size();
+    }
+
     void wait() {
         std::unique_lock lock{m_mutexWait};
         m_waitCondition.wait(lock, [this] {

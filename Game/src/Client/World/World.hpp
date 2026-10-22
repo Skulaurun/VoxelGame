@@ -14,16 +14,6 @@ class World {
 
 public:
     using ChunkMap = std::unordered_map<glm::ivec3, std::unique_ptr<Chunk>>;
-    using NeighborList = std::array<Chunk*, 6>;
-
-    constexpr static auto CHUNK_NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
-        {-1, 0, 0}, // left
-        {0, -1, 0}, // bottom
-        {0, 0, -1}, // back
-        {1, 0, 0},  // right
-        {0, 1, 0},  // top
-        {0, 0, 1}   // front
-    });
 
 public:
     World();

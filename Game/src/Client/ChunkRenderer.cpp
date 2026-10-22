@@ -84,6 +84,7 @@ void ChunkRenderer::resize(uint32_t viewRange) {
         auto vertexBuffer = std::make_shared<VertexBuffer>(4 * Chunk::MAX_FACES * sizeof(Vertex));
         vertexBuffer->setLayout({
             VertexAttributeType::Float3,
+            VertexAttributeType::Float3,
             VertexAttributeType::Float4,
             VertexAttributeType::Float2,
             VertexAttributeType::Float,

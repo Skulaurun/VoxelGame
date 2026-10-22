@@ -4,6 +4,7 @@
 
 struct Vertex {
     glm::vec3 position;
+    glm::vec3 normal;
     glm::vec4 color;
     glm::vec2 textureCoordinate;
     float samplerID;
@@ -21,6 +22,7 @@ public:
     static void clear(const glm::vec3& color);
 
     static void draw(const VertexArray& vertexArray, uint32_t indexCount);
+    static void draw(uint32_t vertexCount);
 
     static void setViewport(const glm::ivec2& size, const glm::ivec2& lowerLeftCorner = {});
 

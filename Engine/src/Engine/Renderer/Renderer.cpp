@@ -28,6 +28,10 @@ void Renderer::draw(const VertexArray& vertexArray, uint32_t indexCount) {
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
 }
 
+void Renderer::draw(uint32_t vertexCount) {
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+}
+
 void Renderer::setViewport(const glm::ivec2& size, const glm::ivec2& lowerLeftCorner) {
     glViewport(lowerLeftCorner.x, lowerLeftCorner.y, size.x, size.y);
 }

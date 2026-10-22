@@ -12,18 +12,18 @@ public:
 
 	void setData(uint8_t* data, uint32_t length);
 
-	uint32_t getWidth() const { return width; }
-	uint32_t getHeight() const { return height; }
-	uint32_t getBytesPerPixel() const { return bytesPerPixel; }
+	uint32_t width() const { return m_width; }
+	uint32_t height() const { return m_height; }
+	uint32_t bytesPerPixel() const { return m_bytesPerPixel; }
 
 	void bind(uint32_t slot) const;
 
 private:
-	uint32_t id;
-	uint32_t width;
-	uint32_t height;
-	uint32_t bytesPerPixel;
+	uint32_t m_id;
+	uint32_t m_width;
+	uint32_t m_height;
+	uint32_t m_bytesPerPixel;
 
-	uint32_t internalFormat;
+	uint32_t m_internalFormat;
 
 };

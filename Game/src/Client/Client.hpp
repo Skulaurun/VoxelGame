@@ -16,6 +16,9 @@
 
 struct GLFWwindow;
 
+class FrameBuffer;
+class VertexArray;
+
 namespace Server {
 class Server;
 }
@@ -59,6 +62,8 @@ private:
 
 private:
     Window m_window;
+    std::unique_ptr<FrameBuffer> m_frameBuffer;
+    std::unique_ptr<VertexArray> m_screenTriangle;
 
     Frustum m_frustum;
     PerspectiveCamera m_camera;
@@ -68,6 +73,7 @@ private:
     ChunkMesher m_chunkMesher;
 
     std::unique_ptr<Shader> m_defaultShader;
+    std::unique_ptr<Shader> m_lightingShader;
 
     // TODO: Make camera controller
     float m_cameraSpeed;

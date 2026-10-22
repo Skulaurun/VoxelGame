@@ -13,8 +13,7 @@ class Client {
 
 public:
     Client(std::shared_ptr<Handler> handler) :
-        m_context{std::move(handler)},
-        m_workGuard{asio::make_work_guard(m_context.context())}
+        m_context{std::move(handler)}
     {}
 
     void start() {
@@ -22,7 +21,6 @@ public:
     }
 
     void stop() {
-        m_workGuard.reset();
         m_context.stop();
     }
 
@@ -66,8 +64,6 @@ public:
 private:
     Context<Handler> m_context;
     std::shared_ptr<Connection> m_connection;
-
-    asio::executor_work_guard<asio::io_context::executor_type> m_workGuard;
 
 };
 

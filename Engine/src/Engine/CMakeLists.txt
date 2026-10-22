@@ -5,6 +5,7 @@ add_library(VoxelEngine
     "Renderer/OpenGL/OpenGL.cpp"
     "Renderer/OpenGL/Shader.cpp"
     "Renderer/OpenGL/Texture.cpp"
+    "Renderer/OpenGL/FrameBuffer.cpp"
     "Renderer/OpenGL/VertexBuffer.cpp"
     "Renderer/OpenGL/IndexBuffer.cpp"
     "Renderer/OpenGL/VertexArray.cpp"
