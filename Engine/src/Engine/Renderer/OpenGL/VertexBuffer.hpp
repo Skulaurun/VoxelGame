@@ -30,6 +30,8 @@ public:
 	VertexBuffer(const void* data, uint32_t size);
 	~VertexBuffer();
 
+	void resize(const void* data, uint32_t size);
+
 	void upload(const void* data, uint32_t offset, uint32_t size);
 
 	uint32_t getId() const { return id; }

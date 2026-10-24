@@ -33,9 +33,12 @@ public:
     void bind();
     void unbind();
 
-    void bindAttachments();
+    void bindAttachments(uint32_t offset = 0);
 
     void resize(uint32_t width, uint32_t height);
+
+    auto specification() const -> const auto& { return m_specification; }
+    auto attachmentCount() const { return m_textures.size(); }
 
 	uint32_t id() const { return m_id; }
 

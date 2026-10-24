@@ -55,8 +55,8 @@ void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
 
     auto& renderable = m_renderables[index];
     auto& vertexArray = renderable.vertexArray;
-    vertexArray->getIndexBuffer()->upload(mesh.indices.data(), 0, mesh.indices.size() * sizeof(uint32_t));
-    vertexArray->getVertexBuffers()[0]->upload(mesh.vertices.data(), 0, mesh.vertices.size() * sizeof(Vertex));
+    vertexArray->getIndexBuffer()->resize(mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
+    vertexArray->getVertexBuffers()[0]->resize(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
     renderable.indexCount = mesh.indices.size();
     renderable.boundingBox = mesh.boundingBox;
     renderable.empty = false;
@@ -80,8 +80,8 @@ void ChunkRenderer::resize(uint32_t viewRange) {
     m_renderables.resize(side * side * side);
 
     for (std::size_t i = 0; i < m_renderables.size(); i++) {
-        auto indexBuffer = std::make_shared<IndexBuffer>(6 * Chunk::MAX_FACES * sizeof(uint32_t));
-        auto vertexBuffer = std::make_shared<VertexBuffer>(4 * Chunk::MAX_FACES * sizeof(Vertex));
+        auto indexBuffer = std::make_shared<IndexBuffer>(sizeof(uint32_t));
+        auto vertexBuffer = std::make_shared<VertexBuffer>(sizeof(Vertex));
         vertexBuffer->setLayout({
             VertexAttributeType::Float3,
             VertexAttributeType::Float3,

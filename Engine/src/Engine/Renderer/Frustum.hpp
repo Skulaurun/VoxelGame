@@ -12,6 +12,10 @@ public:
 
     void update(const glm::mat4& viewProjection);
 
+    auto planes() const -> const auto& { return m_planes; }
+
+    static auto worldBounds(const glm::mat4& viewProjection) -> std::array<Point3, 8>;
+
 private:
     static float distanceToPoint(const Plane& plane, const Point3& point);
 

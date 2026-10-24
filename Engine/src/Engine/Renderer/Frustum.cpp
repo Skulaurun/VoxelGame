@@ -55,3 +55,19 @@ void Frustum::update(const glm::mat4& viewProjection) {
         m_planes[i] = Plane{ glm::vec3{planes[i]}, planes[i].w };
     }
 }
+
+auto Frustum::worldBounds(const glm::mat4& viewProjection) -> std::array<Point3, 8> {
+    glm::mat4 inverseViewProjection = glm::inverse(viewProjection);
+
+    std::array<Point3, 8> result{};
+    std::size_t i = 0;
+    for (float y : {-1.0f, 1.0f}) {
+        for (float x : {-1.0f, 1.0f}) {
+            for (float z : {-1.0f, 1.0f}) {
+                const auto& world = inverseViewProjection * glm::vec4(x, y, z, 1.0f);
+                result[i++] = glm::vec3{world} / world.w;
+            }
+        }
+    }
+    return result;
+}

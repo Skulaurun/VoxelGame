@@ -22,6 +22,8 @@ public:
     auto fovY() const { return m_fovY; }
     auto position() const { return m_position; }
     auto direction() const { return m_direction; }
+    auto near() const { return m_near; }
+    auto far() const { return m_far; }
 
     auto view() const -> const auto& {
         if (m_viewDirty) {

@@ -30,9 +30,9 @@ void FrameBuffer::bind() {
     glBindFramebuffer(GL_FRAMEBUFFER, m_id);
 }
 
-void FrameBuffer::bindAttachments() {
+void FrameBuffer::bindAttachments(uint32_t offset) {
     for (std::size_t i = 0; i < m_textures.size(); i++) {
-        glActiveTexture(GL_TEXTURE0 + i);
+        glActiveTexture(GL_TEXTURE0 + offset + i);
         glBindTexture(GL_TEXTURE_2D, m_textures[i]);
     }
 }
@@ -61,7 +61,12 @@ void FrameBuffer::resize(uint32_t width, uint32_t height) {
 
     attachDepthTexture(m_textures.back(), m_specification.depthAttachment.type);
 
-    glNamedFramebufferDrawBuffers(m_id, m_colorAttachments.size(), m_colorAttachments.data());
+    if (!m_colorAttachments.empty()) {
+        glNamedFramebufferDrawBuffers(m_id, m_colorAttachments.size(), m_colorAttachments.data());
+    } else {
+        glNamedFramebufferDrawBuffer(m_id, GL_NONE);
+        glNamedFramebufferReadBuffer(m_id, GL_NONE);
+    }
 
     assert(glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
@@ -77,11 +82,12 @@ void FrameBuffer::attachColorTexture(uint32_t textureId, PixelType type, uint32_
     m_colorAttachments.emplace_back(GL_COLOR_ATTACHMENT0 + slot);
     glNamedFramebufferTexture(m_id, m_colorAttachments.back(), textureId, 0);
 }
+
 void FrameBuffer::attachDepthTexture(uint32_t textureId, PixelType type) {
     glTextureStorage2D(textureId, 1, pixelFormat(type), m_specification.width, m_specification.height);
 
-    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 

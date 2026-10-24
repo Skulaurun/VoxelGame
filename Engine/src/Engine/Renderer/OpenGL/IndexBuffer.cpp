@@ -14,6 +14,10 @@ IndexBuffer::~IndexBuffer() {
     glDeleteBuffers(1, &id);
 }
 
+void IndexBuffer::resize(const void* data, uint32_t size) {
+    glNamedBufferData(id, size, data, GL_STATIC_DRAW);
+}
+
 void IndexBuffer::upload(const uint32_t* data, uint32_t offset, uint32_t size) {
     glNamedBufferSubData(id, offset, size, data);
 }

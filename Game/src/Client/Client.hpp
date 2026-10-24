@@ -42,6 +42,9 @@ public:
     void run();
     void update(const float dt);
 
+    void renderScene(const Frustum& frustum);
+    void doRenderPipeline();
+
     void finish();
 
     auto isRunning() const { return !m_window.shouldClose(); }
@@ -63,9 +66,11 @@ private:
 private:
     Window m_window;
     std::unique_ptr<FrameBuffer> m_frameBuffer;
+    std::unique_ptr<FrameBuffer> m_shadowFrameBuffer;
     std::unique_ptr<VertexArray> m_screenTriangle;
 
     Frustum m_frustum;
+    Frustum m_lightFrustum;
     PerspectiveCamera m_camera;
     ChunkRenderer m_chunkRenderer;
     
@@ -74,6 +79,8 @@ private:
 
     std::unique_ptr<Shader> m_defaultShader;
     std::unique_ptr<Shader> m_lightingShader;
+    std::unique_ptr<Shader> m_shadowShader;
+    std::unique_ptr<Shader> m_debugShader;
 
     // TODO: Make camera controller
     float m_cameraSpeed;

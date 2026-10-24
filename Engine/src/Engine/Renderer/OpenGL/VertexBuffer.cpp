@@ -14,6 +14,10 @@ VertexBuffer::~VertexBuffer() {
     glDeleteBuffers(1, &id);
 }
 
+void VertexBuffer::resize(const void* data, uint32_t size) {
+    glNamedBufferData(id, size, data, GL_STATIC_DRAW);
+}
+
 void VertexBuffer::upload(const void* data, uint32_t offset, uint32_t size) {
     glNamedBufferSubData(id, offset, size, data);
 }

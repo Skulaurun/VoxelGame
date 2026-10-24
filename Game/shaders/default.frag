@@ -13,5 +13,6 @@ void main()
     color.xyz *= min(ao + 0.25, 1.0);
 
     gAlbedo = color;
+    // Multiply by normalMatrix?
     gNormal = vec4(normalize(normal), 1.0);
 }
