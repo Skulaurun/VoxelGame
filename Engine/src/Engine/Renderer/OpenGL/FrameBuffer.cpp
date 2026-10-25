@@ -1,17 +1,37 @@
 #include <Engine/Renderer/OpenGL/FrameBuffer.hpp>
 #include <Engine/Renderer/OpenGL/Texture.hpp>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <glad/gl.h>
 
 #include <cassert>
 
-auto pixelFormat(PixelType type) -> GLenum {
+auto toGlPixelFormat(PixelType type) -> GLenum {
     switch (type) {
         case PixelType::Color8: return GL_RGBA8;
         case PixelType::Float16: return GL_RGBA16F;
         case PixelType::Depth24: return GL_DEPTH_COMPONENT24;
         default: return GL_NONE;
     }
+}
+
+auto toGlTextureFilter(TextureFilter type) -> GLenum {
+    switch (type) {
+        case TextureFilter::Nearest: return GL_NEAREST;
+        case TextureFilter::Linear: return GL_LINEAR;
+        default: return GL_NONE;
+    }
+}
+
+template<typename Type> struct WrapTraits { constexpr static GLenum value = GL_NONE; };
+template<> struct WrapTraits<TextureWrap::Repeat> { constexpr static GLenum value = GL_REPEAT; };
+template<> struct WrapTraits<TextureWrap::ClampToEdge> { constexpr static GLenum value = GL_CLAMP_TO_EDGE; };
+template<> struct WrapTraits<TextureWrap::ClampToBorder> { constexpr static GLenum value = GL_CLAMP_TO_BORDER; };
+
+auto toGlTextureWrap(const TextureWrap& wrap) -> GLenum {
+    return std::visit([]<typename Type>(Type&& type) {
+        return WrapTraits<std::decay_t<Type>>::value;
+    }, wrap.data);
 }
 
 FrameBuffer::FrameBuffer(const Specification& specification) : m_specification{specification} {
@@ -56,10 +76,10 @@ void FrameBuffer::resize(uint32_t width, uint32_t height) {
     glCreateTextures(GL_TEXTURE_2D, m_textures.size(), m_textures.data());
 
     for (std::size_t i = 0; i < m_specification.colorAttachments.size(); i++) {
-        attachColorTexture(m_textures[i], m_specification.colorAttachments[i].type, i);
+        attachColorTexture(m_textures[i], m_specification.colorAttachments[i], i);
     }
 
-    attachDepthTexture(m_textures.back(), m_specification.depthAttachment.type);
+    attachDepthTexture(m_textures.back(), m_specification.depthAttachment);
 
     if (!m_colorAttachments.empty()) {
         glNamedFramebufferDrawBuffers(m_id, m_colorAttachments.size(), m_colorAttachments.data());
@@ -71,25 +91,30 @@ void FrameBuffer::resize(uint32_t width, uint32_t height) {
     assert(glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 }
 
-void FrameBuffer::attachColorTexture(uint32_t textureId, PixelType type, uint32_t slot) {
-    glTextureStorage2D(textureId, 1, pixelFormat(type), m_specification.width, m_specification.height);
+void FrameBuffer::setParameters(uint32_t textureId, const Attachment& attachment) {
+    glTextureStorage2D(textureId, 1, toGlPixelFormat(attachment.type), m_specification.width, m_specification.height);
 
-    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    const auto filter = toGlTextureFilter(attachment.filter);
+    const auto wrap = toGlTextureWrap(attachment.wrap);
+    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, filter);
+    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, filter);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, wrap);
+    glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, wrap);
+
+    if (const auto* clampToBorder = std::get_if<TextureWrap::ClampToBorder>(&attachment.wrap.data)) {
+        glTextureParameterfv(textureId, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(clampToBorder->borderColor));
+    }
+}
+
+void FrameBuffer::attachColorTexture(uint32_t textureId, const Attachment& attachment, uint32_t slot) {
+    setParameters(textureId, attachment);
 
     m_colorAttachments.emplace_back(GL_COLOR_ATTACHMENT0 + slot);
     glNamedFramebufferTexture(m_id, m_colorAttachments.back(), textureId, 0);
 }
 
-void FrameBuffer::attachDepthTexture(uint32_t textureId, PixelType type) {
-    glTextureStorage2D(textureId, 1, pixelFormat(type), m_specification.width, m_specification.height);
-
-    glTextureParameteri(textureId, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTextureParameteri(textureId, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTextureParameteri(textureId, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(textureId, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+void FrameBuffer::attachDepthTexture(uint32_t textureId, const Attachment& attachment) {
+    setParameters(textureId, attachment);
 
     glNamedFramebufferTexture(m_id, GL_DEPTH_ATTACHMENT, textureId, 0);
 }

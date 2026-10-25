@@ -53,12 +53,7 @@ float isInShadow(vec3 position, float NdotL) {
     vec3 lightUvw = lightSpacePosition.xyz * 0.5 + 0.5;
 
     float bias = max(0.005 * (1.0 - NdotL), 0.0005);
-    float shadow = 0.0;
-    // TODO: set texparameteri to clamp to border and set border to no shadow
-    if (all(greaterThanEqual(lightUvw, vec3(0.0))) && all(lessThanEqual(lightUvw, vec3(1.0)))) {
-        shadow = pcf(lightUvw.xy, lightUvw.z, bias);
-    }
-    return shadow;
+    return pcf(lightUvw.xy, lightUvw.z, bias);
 }
 
 vec3 renderSky(vec3 viewRay) {

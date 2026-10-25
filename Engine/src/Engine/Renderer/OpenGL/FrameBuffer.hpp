@@ -2,8 +2,9 @@
 
 #include <cstdint>
 #include <vector>
-#include <array>
-#include <memory>
+#include <variant>
+
+#include <glm/glm.hpp>
 
 enum class PixelType : uint8_t {
 	Color8,
@@ -11,11 +12,27 @@ enum class PixelType : uint8_t {
 	Depth24
 };
 
+enum class TextureFilter {
+    Nearest, Linear
+};
+
+struct TextureWrap {
+    struct Repeat{};
+    struct ClampToEdge{};
+    struct ClampToBorder{
+        glm::vec4 borderColor;
+    };
+
+    std::variant<Repeat, ClampToEdge, ClampToBorder> data;
+};
+
 class FrameBuffer {
 
 public:
     struct Attachment {
-        PixelType type;
+        PixelType type{PixelType::Color8};
+        TextureFilter filter{TextureFilter::Linear};
+        TextureWrap wrap{TextureWrap::Repeat{}};
     };
 
     struct Specification {
@@ -43,8 +60,10 @@ public:
 	uint32_t id() const { return m_id; }
 
 private:
-    void attachColorTexture(uint32_t textureId, PixelType type, uint32_t slot);
-    void attachDepthTexture(uint32_t textureId, PixelType type);
+    void setParameters(uint32_t textureId, const Attachment& attachment);
+
+    void attachColorTexture(uint32_t textureId, const Attachment& attachment, uint32_t slot);
+    void attachDepthTexture(uint32_t textureId, const Attachment& attachment);
 
 private:
 	uint32_t m_id;

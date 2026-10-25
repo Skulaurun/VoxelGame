@@ -152,15 +152,14 @@ Client::Client() :
             { PixelType::Float16 },
             { PixelType::Color8 }
         },
-        { PixelType::Depth24 }
+        { PixelType::Depth24, TextureFilter::Nearest }
     });
 
     m_shadowFrameBuffer = std::make_unique<FrameBuffer>(FrameBuffer::Specification{
-        //2048, 2048,
         // TODO: implement Cascaded Shadow Mapping
         8192, 8192,
         {},
-        { PixelType::Depth24 }
+        { PixelType::Depth24, TextureFilter::Nearest, TextureWrap::ClampToBorder{glm::vec4{0.0}} }
     });
 
     m_screenTriangle = std::make_unique<VertexArray>();
