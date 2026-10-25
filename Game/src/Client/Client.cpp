@@ -25,7 +25,11 @@ constexpr float FOV_Y = 45.0f;
 constexpr int32_t CHUNK_RENDER_DISTANCE{ 8 };
 constexpr int32_t RENDER_DISTANCE{ (CHUNK_RENDER_DISTANCE + 1) * Chunk::SIZE };
 
-auto calculateLightSpaceTransform(const PerspectiveCamera& camera, const glm::vec3& lightDirection, const glm::vec2& shadowResolution) {
+auto calculateLightSpaceTransform(
+    const PerspectiveCamera& camera,
+    const glm::vec3& lightDirection,
+    const glm::vec2& shadowResolution
+) {
     const auto midpoint = (camera.near() + camera.far()) / 2.0f;
     const auto cameraCenter = camera.position() + midpoint * camera.direction();
 
@@ -85,9 +89,17 @@ auto calculateLightSpaceTransform(const PerspectiveCamera& camera, const glm::ve
     return lightViewProjection;
 }
 
+auto isControllingCamera(GLFWwindow* window) {
+    return glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+}
+
 Client::Client() :
     m_window{WindowProperties{ "VoxelGame", DEFAULT_WINDOW_SIZE.x, DEFAULT_WINDOW_SIZE.y }},
     m_camera{FOV_Y, DEFAULT_WINDOW_SIZE.x / static_cast<float>(DEFAULT_WINDOW_SIZE.y), 0.1f, RENDER_DISTANCE},
+
+    m_options{
+        .sunDirection = { 0.4f, 0.8f, 0.3f }
+    },
 
     m_world{},
     m_chunkMesher{m_world},
@@ -119,6 +131,10 @@ Client::Client() :
     glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) {
         Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
         client.onMouseButton(window, button, action, mods);
+    });
+    glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+        Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
+        client.onKey(window, key, scancode, action, mods);
     });
     glfwSetFramebufferSizeCallback(window, [](GLFWwindow* window, int width, int height) {
         Client& client = *static_cast<Client*>(glfwGetWindowUserPointer(window));
@@ -262,6 +278,14 @@ void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods)
     }
 }
 
+void Client::onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+        glfwSetInputMode(window, GLFW_CURSOR,
+            isControllingCamera(window) ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED
+        );
+    }
+}
+
 void Client::onMouseScroll(GLFWwindow* window, double xoffset, double yoffset) {
     m_cameraSpeed += yoffset;
 }
@@ -274,6 +298,10 @@ void Client::onCursorPosition(GLFWwindow* window, double x, double y) {
     float yOffset = lastY - y;
     lastX = x;
     lastY = y;
+
+    if (!isControllingCamera(window)) {
+        return;
+    }
 
     constexpr float sensitivity = 0.1f;
     xOffset *= sensitivity;
@@ -326,8 +354,7 @@ void Client::renderScene(const Frustum& frustum) {
 void Client::doRenderPipeline() {
     m_frustum.update(m_camera.viewProjection());
 
-    const auto sunDirection = glm::normalize(glm::vec3{ 0.4f, 0.8f, 0.3f });
-    const auto lightViewProjection = calculateLightSpaceTransform(m_camera, sunDirection, {
+    const auto lightViewProjection = calculateLightSpaceTransform(m_camera, m_options.sunDirection, {
         m_shadowFrameBuffer->specification().width,
         m_shadowFrameBuffer->specification().height
     });
@@ -375,7 +402,7 @@ void Client::doRenderPipeline() {
         Renderer::clear({ 0.529f, 0.808f, 0.922f, 1.0f });
     
         m_lightingShader->bind();
-        m_lightingShader->setUniform("uSunDirection", sunDirection);
+        m_lightingShader->setUniform("uSunDirection", m_options.sunDirection);
         m_lightingShader->setUniform("uSunColor", glm::vec3{1.0f, 0.95f, 0.85f});
         m_lightingShader->setUniform("uSunIntensity", 1.0f);
         m_lightingShader->setUniform("uAmbientColor", glm::vec3{0.55f, 0.60f, 0.70f});
@@ -437,6 +464,12 @@ void Client::update(const float dt) {
         std::format("Draw calls: {}", m_chunkRenderer.statistics().numDrawCalls).c_str()
     );
     ImGui::End();
+
+    if (!isControllingCamera(m_window.nativeWindow())) {
+        ImGui::Begin("Options");
+        ImGui::SliderFloat3("Sun Direction", glm::value_ptr(m_options.sunDirection), -1.0f, 1.0f);
+        ImGui::End();
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

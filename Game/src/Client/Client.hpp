@@ -30,6 +30,11 @@ class ClientHandler;
 class Client {
 
 public:
+    struct Options {
+        glm::vec3 sunDirection;
+    };
+
+public:
     Client();
     ~Client();
 
@@ -52,6 +57,7 @@ public:
     void onCursorPosition(GLFWwindow* window, double x, double y);
     void onMouseScroll(GLFWwindow* window, double xoffset, double yoffset);
     void onMouseButton(GLFWwindow* window, int button, int action, int mods);
+    void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
     void onFrameBufferSize(GLFWwindow* window, int width, int height);
 
     auto world() -> auto& { return m_world; }
@@ -74,6 +80,8 @@ private:
     PerspectiveCamera m_camera;
     ChunkRenderer m_chunkRenderer;
     
+    Options m_options;
+
     World m_world;
     ChunkMesher m_chunkMesher;
 
