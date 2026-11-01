@@ -10,6 +10,13 @@
 
 namespace Client {
 
+void ChunkRenderer::init() {
+    std::vector<uint32_t> indices{};
+    generateQuadIndices(indices, Chunk::MAX_FACES);
+
+    m_vertexIndices = std::make_shared<IndexBuffer>(indices.data(), indices.size() * sizeof(uint32_t));
+}
+
 void ChunkRenderer::render(const Frustum& frustum) {
     ZoneScoped;
 
@@ -32,6 +39,7 @@ void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
     if (mesh.indices.empty()) {
         return;
     }
+    assert(mesh.indices.size() < Chunk::MAX_FACES * 6);
 
     std::size_t index{};
     auto it = m_chunkIndices.find(position);
@@ -39,12 +47,7 @@ void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
         index = it->second;
     } else {
         if (m_freeIndices.empty()) {
-            for (std::size_t i = 0; i < m_renderables.size(); i++) {
-                if (m_renderables[i].empty) {
-                    index = i;
-                    break;
-                }
-            }
+            index = addRenderable(mesh.vertices.size());
         } else [[likely]] {
             index = m_freeIndices.front();
             m_freeIndices.pop_front();
@@ -55,7 +58,6 @@ void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
 
     auto& renderable = m_renderables[index];
     auto& vertexArray = renderable.vertexArray;
-    vertexArray->getIndexBuffer()->resize(mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
     vertexArray->getVertexBuffers()[0]->resize(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
     renderable.indexCount = mesh.indices.size();
     renderable.boundingBox = mesh.boundingBox;
@@ -72,30 +74,26 @@ void ChunkRenderer::unloadMesh(const glm::ivec3& position) {
     }
 }
 
-void ChunkRenderer::resize(uint32_t viewRange) {
-    ZoneScoped;
+auto ChunkRenderer::addRenderable(std::size_t vertexCount) -> std::size_t {
+    auto vertexBuffer = std::make_shared<VertexBuffer>(vertexCount * sizeof(Vertex));
+    vertexBuffer->setLayout({
+        VertexAttributeType::Float3,
+        VertexAttributeType::Float3,
+        VertexAttributeType::Float4,
+        VertexAttributeType::Float2,
+        VertexAttributeType::Float,
+        VertexAttributeType::Float
+    });
 
-    m_viewRange = viewRange;
-    const uint32_t side = 2 * viewRange + 1;
-    m_renderables.resize(side * side * side);
+    auto vertexArray = std::make_shared<VertexArray>();
+    vertexArray->addVertexBuffer(vertexBuffer);
+    vertexArray->setIndexBuffer(m_vertexIndices);
 
-    for (std::size_t i = 0; i < m_renderables.size(); i++) {
-        auto indexBuffer = std::make_shared<IndexBuffer>(sizeof(uint32_t));
-        auto vertexBuffer = std::make_shared<VertexBuffer>(sizeof(Vertex));
-        vertexBuffer->setLayout({
-            VertexAttributeType::Float3,
-            VertexAttributeType::Float3,
-            VertexAttributeType::Float4,
-            VertexAttributeType::Float2,
-            VertexAttributeType::Float,
-            VertexAttributeType::Float
-        });
-    
-        auto vertexArray = std::make_shared<VertexArray>();
-        vertexArray->addVertexBuffer(vertexBuffer);
-        vertexArray->setIndexBuffer(indexBuffer);
-        m_renderables[i].vertexArray = vertexArray;
-    }
+    auto index = m_renderables.size();
+    auto& renderable = m_renderables.emplace_back();
+    renderable.vertexArray = std::move(vertexArray);
+
+    return index;
 }
 
 }

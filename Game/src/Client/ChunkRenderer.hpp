@@ -27,7 +27,7 @@ public:
         bool empty{true};
         uint32_t indexCount{0};
         std::shared_ptr<VertexArray> vertexArray;
-        Box3 boundingBox;
+        AlignedBox3f boundingBox;
     };
 
     struct Statistics {
@@ -36,19 +36,23 @@ public:
 
     ChunkRenderer() = default;
 
+    // TODO: remove after Client has member that initializes OpenGL
+    void init();
+
     void render(const Frustum& frustum);
 
     void loadMesh(const glm::ivec3& position, const Mesh& mesh);
     void unloadMesh(const glm::ivec3& position);
 
-    void resize(uint32_t viewRange);
-
-    auto viewRange() const { return m_viewRange; }
     auto statistics() const -> const auto& { return m_stats; }
 
 private:
-    uint32_t m_viewRange;
+    auto addRenderable(std::size_t vertexCount = 0) -> std::size_t;
+
+private:
     std::vector<Renderable> m_renderables;
+
+    std::shared_ptr<IndexBuffer> m_vertexIndices;
 
     std::deque<std::size_t> m_freeIndices;
     std::unordered_map<glm::ivec3, std::size_t> m_chunkIndices;

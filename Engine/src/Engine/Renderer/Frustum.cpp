@@ -4,7 +4,7 @@ float Frustum::distanceToPoint(const Plane& plane, const Point3& point) {
     return glm::dot(plane.normal, point) + plane.constant;
 }
 
-bool Frustum::intersectsBox(const Box3& box) const {
+bool Frustum::intersectsBox(const AlignedBox3f& box) const {
     for (std::size_t i = 0; i < m_planes.size(); i++) {
         const Plane& plane = m_planes[i];
         // TODO: learn

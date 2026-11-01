@@ -145,6 +145,8 @@ Client::Client() :
 
     Renderer::init();
 
+    m_chunkRenderer.init();
+
     m_frameBuffer = std::make_unique<FrameBuffer>(FrameBuffer::Specification{
         static_cast<uint32_t>(DEFAULT_WINDOW_SIZE.x),
         static_cast<uint32_t>(DEFAULT_WINDOW_SIZE.y),
@@ -188,9 +190,6 @@ Client::Client() :
     m_lightingShader->setUniform("uAlbedo", 1);
     m_lightingShader->setUniform("uDepth", 2);
     m_lightingShader->setUniform("uShadowMap", 3);
-
-    // TODO:
-    m_chunkRenderer.resize(CHUNK_RENDER_DISTANCE);
 
     // ImGui init
 

@@ -8,11 +8,25 @@ struct Plane {
     float constant;
 };
 
-// axis-aligned bounding box
-struct Box3 {
-    glm::vec3 min;
-    glm::vec3 max;
+template<typename Point>
+struct AlignedBox {
+    Point min;
+    Point max;
+
+    auto intersection(const AlignedBox& other) const -> AlignedBox {
+        return {
+            glm::max(min, other.min),
+            glm::min(max, other.max)
+        };
+    }
+
+    auto empty() const -> bool {
+        return glm::any(glm::greaterThan(min, max));
+    }
 };
+
+using AlignedBox3f = AlignedBox<glm::vec3>;
+using AlignedBox3i = AlignedBox<glm::ivec3>;
 
 using Point3 = glm::vec3;
 

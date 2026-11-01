@@ -27,3 +27,7 @@ constexpr glm::ivec3 toWorldPosition(glm::ivec3 chunkPosition, glm::ivec3 voxelP
         chunkPosition.z * WorldConfig::CHUNK_SIZE + voxelPosition.z
     };
 }
+
+constexpr int32_t toWorldPosition(int32_t chunkPosition, int32_t voxelPosition) {
+    return chunkPosition * WorldConfig::CHUNK_SIZE + voxelPosition;
+}

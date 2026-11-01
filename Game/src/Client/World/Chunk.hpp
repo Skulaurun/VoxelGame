@@ -25,7 +25,7 @@ struct Chunk {
     Mesh mesh;
     uint8_t neighborCount{0};
 
-    constexpr static auto box(const glm::ivec3& position) -> Box3 {
+    constexpr static auto box(const glm::ivec3& position) -> AlignedBox3f {
         return {
             toWorldPosition(position, {0, 0, 0}),
             toWorldPosition(position, {SIZE, SIZE, SIZE})

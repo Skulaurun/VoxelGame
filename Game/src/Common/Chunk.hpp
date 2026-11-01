@@ -14,7 +14,7 @@ namespace Common {
 //     glm::ivec3 position;
 //     VoxelGrid grid;
 
-//     constexpr auto box() const -> Box3 {
+//     constexpr auto box() const -> AlignedBox3f {
 //         return {
 //             toWorldPosition(position, {0, 0, 0}),
 //             toWorldPosition(position, {SIZE, SIZE, SIZE})

@@ -235,7 +235,8 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
         }
     }
 
-    generateQuadIndices(mesh, quadCount);
+    // TODO: same for every chunk
+    generateQuadIndices(mesh.indices, quadCount);
     mesh.boundingBox = Chunk::box(chunkPosition);
 }
 
