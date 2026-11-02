@@ -33,6 +33,8 @@ void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> s
         // TODO:
         // m_chunkManager.unload();
         if (auto* chunk = m_client.world().chunkAt(position)) {
+            m_client.chunkMesher().removeChunk(position);
+
             //if (!chunk->mesh.indices.empty()) {
                 m_client.chunkRenderer().unloadMesh(position);
             //}
@@ -47,12 +49,12 @@ void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> s
         glm::ivec3 position{};
         stream.read(position);
 
-        auto& chunk = m_client.world().updateChunk(position);
+        auto [chunk, isNew] = m_client.world().getOrEmplaceChunk(position);
         stream.read(chunk.grid);
 
         // TODO:
         // m_chunkManager.load();
-        m_client.chunkMesher().process(chunk);
+        m_client.chunkMesher().addChunk(chunk, isNew);
     }
 
     glm::vec3 playerChunk{};

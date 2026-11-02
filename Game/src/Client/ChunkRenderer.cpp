@@ -37,6 +37,7 @@ void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
     ZoneScoped;
 
     if (mesh.indices.empty()) {
+        unloadMesh(position);
         return;
     }
     assert(mesh.indices.size() < Chunk::MAX_FACES * 6);

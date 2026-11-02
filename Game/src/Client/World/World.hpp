@@ -24,7 +24,7 @@ public:
     World& operator=(World&&) = delete;
     World& operator=(const World&) = delete;
 
-    auto updateChunk(const glm::ivec3& position) -> Chunk&;
+    auto getOrEmplaceChunk(const glm::ivec3& position) -> std::tuple<Chunk&, bool>;
     void deleteChunk(const glm::ivec3& position);
 
     template<typename Self>

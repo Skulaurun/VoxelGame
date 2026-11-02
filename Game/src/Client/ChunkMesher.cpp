@@ -75,20 +75,30 @@ static void forEachNeighbor(World& world, const glm::ivec3& position, Fn fn) {
     }
 }
 
-void ChunkMesher::process(Chunk& chunk) {
-    chunk.neighborCount = 0;
-    forEachNeighbor(m_world, chunk.position, [this, &chunk](Chunk& neighbor) {
-        chunk.neighborCount = std::min(chunk.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
-        neighbor.neighborCount = std::min(neighbor.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
+void ChunkMesher::addChunk(Chunk& chunk, bool isNew) {
+    if (isNew) {
+        chunk.neighborCount = 0;
+        forEachNeighbor(m_world, chunk.position, [this, &chunk](Chunk& neighbor) {
+            chunk.neighborCount = std::min(chunk.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
+            neighbor.neighborCount = std::min(neighbor.neighborCount + 1u, REQUIRED_NEIGHBOR_COUNT);
+    
+            if (neighbor.neighborCount == REQUIRED_NEIGHBOR_COUNT) {
+                enqueue(neighbor);
+            }
+        });
+    }
 
-        if (neighbor.neighborCount == REQUIRED_NEIGHBOR_COUNT) {
-            enqueue(neighbor);
-        }
-    });
+    // TODO: properly handle chunk updates (remesh updated chunk's neighbors)
 
     if (chunk.neighborCount == REQUIRED_NEIGHBOR_COUNT) {
         enqueue(chunk);
     }
+}
+
+void ChunkMesher::removeChunk(const glm::ivec3& position) {
+    forEachNeighbor(m_world, position, [this](Chunk& neighbor) {
+        neighbor.neighborCount = std::max(neighbor.neighborCount - 1, 0);
+    });
 }
 
 void ChunkMesher::enqueue(const Chunk& chunk) {
@@ -131,6 +141,7 @@ void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& gri
 
     for (int32_t i = 0; i < NEIGHBOR_OFFSETS.size(); i++) {
         Chunk* neighbor = m_world.chunkAt(chunk.position + NEIGHBOR_OFFSETS[i]);
+        assert(neighbor);
         if (!neighbor) continue;
 
         for (int32_t y = 0; y < COPY_PATTERNS[i].counts.y; y++) {

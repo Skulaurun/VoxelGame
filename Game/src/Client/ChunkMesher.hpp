@@ -29,7 +29,8 @@ public:
 public:
     ChunkMesher(World& world);
 
-    void process(Chunk& chunk);
+    void addChunk(Chunk& chunk, bool isNew);
+    void removeChunk(const glm::ivec3& position);
 
     void drain(std::invocable<Result&> auto drainer) {
         std::scoped_lock lock{m_completedMutex};

@@ -4,12 +4,13 @@ namespace Client {
 
 World::World() {}
 
-auto World::updateChunk(const glm::ivec3& position) -> Chunk& {
-    auto& ptr = m_chunks[position];
-    if (!ptr) {
-        ptr = std::make_unique<Chunk>(position);
+auto World::getOrEmplaceChunk(const glm::ivec3& position) -> std::tuple<Chunk&, bool> {
+    auto& chunk = m_chunks[position];
+    if (!chunk) {
+        chunk = std::make_unique<Chunk>(position);
+        return {*chunk, true};
     }
-    return *ptr;
+    return {*chunk, false};
 }
 
 void World::deleteChunk(const glm::ivec3& position) {
