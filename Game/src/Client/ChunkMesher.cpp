@@ -7,6 +7,8 @@
 
 #include <tracy/Tracy.hpp>
 
+#include <cstring>
+
 namespace Client {
 
 ChunkMesher::ChunkMesher(World& world) :
@@ -144,21 +146,42 @@ void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& gri
         assert(neighbor);
         if (!neighbor) continue;
 
-        for (int32_t y = 0; y < COPY_PATTERNS[i].counts.y; y++) {
-            for (int32_t x = 0; x < COPY_PATTERNS[i].counts.x; x++) {
-                for (int32_t z = 0; z < COPY_PATTERNS[i].counts.z; z++) {
-                    grid[COPY_PATTERNS[i].dstOffset + grid.indexOf({x, y, z})]
-                        = neighbor->grid[COPY_PATTERNS[i].srcOffset + neighbor->grid.indexOf({x, y, z})];
+        const auto& copyPattern = COPY_PATTERNS[i];
+        const auto* source = neighbor->grid.voxels().data() + copyPattern.srcOffset;
+        auto* destination = grid.voxels().data() + copyPattern.dstOffset;
+
+        if (copyPattern.counts.z == Chunk::SIZE) {
+            for (int32_t y = 0; y < copyPattern.counts.y; y++) {
+                for (int32_t x = 0; x < copyPattern.counts.x; x++) {
+                    // Z rows are contiguous in memory
+                    std::memcpy(
+                        destination + grid.indexOf({x, y, 0}),
+                        source + neighbor->grid.indexOf({x, y, 0}),
+                        // Clang 23.1.0 at -O3 retained memcpy calls when using copyPattern.counts.z
+                        Chunk::SIZE * sizeof(Voxel)
+                    );
+                }
+            }
+        } else {
+            for (int32_t y = 0; y < copyPattern.counts.y; y++) {
+                for (int32_t x = 0; x < copyPattern.counts.x; x++) {
+                    grid[copyPattern.dstOffset + grid.indexOf({x, y, 0})]
+                            = neighbor->grid[copyPattern.srcOffset + neighbor->grid.indexOf({x, y, 0})];
                 }
             }
         }
     }
 
+    const auto* source = chunk.grid.voxels().data();
+    auto* destination = grid.voxels().data();
+
     for (int32_t y = 0; y < Chunk::SIZE; y++) {
         for (int32_t x = 0; x < Chunk::SIZE; x++) {
-            for (int32_t z = 0; z < Chunk::SIZE; z++) {
-                grid[grid.indexOf({x + 1, y + 1, z + 1})] = chunk.grid[chunk.grid.indexOf({x, y, z})];
-            }
+            std::memcpy(
+                destination + grid.indexOf({x + 1, y + 1, 1}),
+                source + chunk.grid.indexOf({x, y, 0}),
+                Chunk::SIZE * sizeof(Voxel)
+            );
         }
     }
 }
@@ -169,15 +192,24 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
     mesh.indices.clear();
     mesh.vertices.clear();
 
-    auto isAir = [](const Voxel* voxel) {
+    const auto isAir = [](const Voxel* voxel) {
         return static_cast<BlockType>(*voxel) == BlockType::Void;
+    };
+
+    const auto computeAo = [](int32_t side1, int32_t side2, int32_t corner) -> float {
+        if (side1 && side2) {
+            return 0;
+        }
+
+        return static_cast<float>(3 - (side1 + side2 + corner)) / 3.0f;
     };
 
     std::size_t quadCount = 0;
     for (int32_t y = 1; y < Chunk::SIZE + 1; y++) {
         for (int32_t x = 1; x < Chunk::SIZE + 1; x++) {
             for (int32_t z = 1; z < Chunk::SIZE + 1; z++) {
-                const Voxel* voxel = grid.at({x, y, z});
+                const glm::ivec3 voxelPosition{x, y, z};
+                const Voxel* voxel = grid.at(voxelPosition);
                 if (isAir(voxel)) {
                     continue;
                 }
@@ -195,42 +227,19 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
                     if (!neighbors[i] || isAir(neighbors[i])) {
                         // Face is visible
                         for (std::size_t j = 0; j < 4; j++) {
+                            const auto& normal = CUBE_VERTEX_NORMALS[i];
+                            const auto& aoOffsets = CUBE_AO_OFFSETS[i * 4 + j];
+
                             glm::vec3 position = CUBE_FACES[i * 4 + j];
-                            position += glm::ivec3(x - 1, y - 1, z - 1);
+                            position += glm::ivec3{x - 1, y - 1, z - 1};
                             position += chunkPosition * Chunk::SIZE;
-                            
-                            glm::vec3 signs = glm::sign(CUBE_FACES[i * 4 + j] - 0.5f);
-                            glm::vec3 normal = CUBE_VERTEX_NORMALS[i * 4 + j];
 
-                            auto corners = std::to_array<glm::vec3>({
-                                {signs.x, signs.y, signs.z},
-                                
-                                {0.0f, signs.y, signs.z},
-                                {signs.x, 0.0f, signs.z},
-                                {signs.x, signs.y, 0.0f}
-                            });
+                            const auto side1 = grid.at(voxelPosition + std::get<0>(aoOffsets));
+                            const auto side2 = grid.at(voxelPosition + std::get<1>(aoOffsets));
+                            const auto corner = grid.at(voxelPosition + std::get<2>(aoOffsets));
+                            assert(side1 && side2 && corner);
 
-                            for (std::size_t i = 1; i <= 2; i++) {
-                                if (normal * corners[i] == glm::vec3{0.0f, 0.0f, 0.0f}) {
-                                    corners[i] = corners.back();
-                                    break;
-                                }
-                            }
-
-                            auto computeAo = [](int32_t side1, int32_t side2, int32_t corner) -> float {
-                                if (side1 && side2) {
-                                    return 0;
-                                }
-
-                                return static_cast<float>(3 - (side1 + side2 + corner)) / 3.0f;
-                            };
-
-                            // TODO: Assert
-                            float ao = computeAo(
-                                !isAir(grid.at({x + corners[1].x, y + corners[1].y, z + corners[1].z})),
-                                !isAir(grid.at({x + corners[2].x, y + corners[2].y, z + corners[2].z})),
-                                !isAir(grid.at({x + corners[0].x, y + corners[0].y, z + corners[0].z}))
-                            );
+                            float ao = computeAo(!isAir(side1), !isAir(side2), !isAir(corner));
 
                             glm::vec4 color{ 0.5f, 0.5f, 0.5f, 1.0f };
                             if (static_cast<BlockType>(*voxel) == BlockType::Grass) {
