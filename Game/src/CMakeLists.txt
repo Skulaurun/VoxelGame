@@ -15,7 +15,7 @@ add_library(VoxelServer STATIC
     "Server/Server.cpp"
     "Server/NetCode.cpp"
     "Server/World/World.cpp"
-    "Server/World/ChunkLoader.cpp"
+    "Server/World/ClientChunkView.cpp"
     "Server/World/WorldGenerator.cpp"
 )
 target_link_libraries(VoxelServer PUBLIC VoxelCommon)

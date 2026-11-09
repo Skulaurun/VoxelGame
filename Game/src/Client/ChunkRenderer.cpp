@@ -18,8 +18,6 @@ void ChunkRenderer::init() {
 }
 
 void ChunkRenderer::render(const Frustum& frustum) {
-    ZoneScoped;
-
     m_stats = {};
 
     for (const auto& renderable : m_renderables) {
@@ -34,8 +32,6 @@ void ChunkRenderer::render(const Frustum& frustum) {
 }
 
 void ChunkRenderer::loadMesh(const glm::ivec3& position, const Mesh& mesh) {
-    ZoneScoped;
-
     if (mesh.indices.empty()) {
         unloadMesh(position);
         return;

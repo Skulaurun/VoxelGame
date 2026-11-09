@@ -40,7 +40,15 @@ public:
     // commit results to m_world,
     // for each finished result, check its neighbors if they arent already generated,
     // if they arent, check if next stage of generation can be run, if yes, submit to thread pool
-    void update();
+    void update(std::invocable<Chunk&> auto&& completer) {
+        std::scoped_lock lock{m_completedMutex};
+
+        for (auto& result : m_completedQueue) {
+            completer(saveToWorld(result));
+        }
+
+        m_completedQueue.clear();
+    }
 
     void enqueue(const glm::vec3& coord);
 
@@ -63,19 +71,22 @@ private:
 
     bool isReadyForNextStage(const Chunk& chunk);
 
+    auto saveToWorld(Result& result) -> Chunk&;
+
 private:
     World& m_world;
-    std::vector<std::jthread> m_threads;
     std::atomic<bool> m_running;
-
+    
     TracyLockable(std::mutex, m_mutex);
     ChunkQueue m_queue;
-
+    
     TracyLockable(std::mutex, m_completedMutex);
     std::deque<Result> m_completedQueue;
-
+    
     TracyCv(std::condition_variable, m_workAvailable);
-
+    
+    std::vector<std::jthread> m_threads;
+    
 };
 
 }

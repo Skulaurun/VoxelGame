@@ -17,7 +17,12 @@ WorldGenerator::WorldGenerator(World& world, std::size_t threadCount) :
 }
 
 WorldGenerator::~WorldGenerator() {
-    m_running.store(false);
+    {
+        // Prevents notifying after checking predicate,
+        // and before worker starts to wait (resulting in missed notification)
+        std::scoped_lock lock{m_mutex};
+        m_running.store(false);
+    }
     m_workAvailable.notify_all();
 }
 
@@ -77,20 +82,12 @@ void WorldGenerator::generateTerrain(Chunk& chunk) {
 // Tree Generation
 // -------------------------------------------------
 
-void WorldGenerator::update() {
-    std::scoped_lock lock{m_completedMutex};
-
-    for (auto& result : m_completedQueue) {
-        m_world.setChunk(std::move(result.chunk), result.state);
-    }
-
-    m_completedQueue.clear();
+auto WorldGenerator::saveToWorld(Result& result) -> Chunk& {
+    return m_world.setChunk(std::move(result.chunk), result.state);
 }
 
 void WorldGenerator::doWork() {
     while (m_running.load()) {
-        //ZoneScoped;
-
         glm::vec3 coord{};
         {
             std::unique_lock lock{m_mutex};

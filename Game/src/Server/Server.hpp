@@ -3,6 +3,7 @@
 #include "ClientState.hpp"
 #include "World/World.hpp"
 
+#include "Common/Common.hpp"
 #include "Common/Network/Server.hpp"
 #include "Common/Network/Connection.hpp"
 
@@ -28,17 +29,20 @@ public:
 
     bool isRunning() const { return m_running.load(); }
 
-    // called from Handler
     void addClient(std::shared_ptr<Common::Network::Connection> connection);
-    void removeClient();
+    void removeClient(const std::shared_ptr<Common::Network::Connection>& connection);
 
-    auto findClient(std::shared_ptr<Common::Network::Connection> connection) -> ClientState*;
+    auto findClient(ClientId id) -> ClientState*;
+    auto findClient(const std::shared_ptr<Common::Network::Connection>& connection) -> ClientState*;
+
+    auto requestClientChunk(ClientId id, const glm::ivec3& position) -> bool;
 
     void run();
     void update();
     void stop();
 
     auto registry() -> auto& { return m_registry; }
+    auto world() -> auto& { return m_world; }
 
     auto netServer() -> auto& { return m_netServer; }
 
@@ -53,6 +57,16 @@ private:
     Common::Network::Server<ServerHandler> m_netServer;
 
     std::vector<ClientState> m_clients;
+
+    std::unordered_map<
+        Common::Network::Connection*,
+        std::size_t
+    > m_connectionToClient;
+
+    ClientId m_lastClientId;
+    std::unordered_map<ClientId, std::size_t> m_idToClient;
+
+    std::unordered_map<glm::ivec3, std::vector<ClientId>> m_requestedChunks;
 
 };
 

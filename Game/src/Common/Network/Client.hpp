@@ -25,7 +25,8 @@ public:
     }
 
     void update() {
-        m_context.pollEvents(false);
+        // TODO:
+        m_context.pollEvents(128, false);
     }
 
     void connect(std::string_view address, uint16_t port) {
@@ -58,6 +59,7 @@ public:
             return;
         }
         m_connection->close();
+        // TODO: wait for close?
         m_connection.reset();
     }
 

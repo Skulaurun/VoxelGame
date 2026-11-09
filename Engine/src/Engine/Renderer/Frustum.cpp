@@ -7,7 +7,7 @@ float Frustum::distanceToPoint(const Plane& plane, const Point3& point) {
 bool Frustum::intersectsBox(const AlignedBox3f& box) const {
     for (std::size_t i = 0; i < m_planes.size(); i++) {
         const Plane& plane = m_planes[i];
-        // TODO: learn
+        // Pick point furthest along the normal
         glm::vec3 point{
             plane.normal.x > 0 ? box.max.x : box.min.x,
             plane.normal.y > 0 ? box.max.y : box.min.y,

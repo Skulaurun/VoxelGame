@@ -31,6 +31,7 @@ class Client {
 
 public:
     struct Options {
+        int32_t renderDistance;
         glm::vec3 sunDirection;
     };
 
@@ -50,6 +51,8 @@ public:
     void renderScene(const Frustum& frustum);
     void doRenderPipeline();
 
+    void requestViewDistance();
+
     void finish();
 
     auto isRunning() const { return !m_window.shouldClose(); }
@@ -59,6 +62,8 @@ public:
     void onMouseButton(GLFWwindow* window, int button, int action, int mods);
     void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
     void onFrameBufferSize(GLFWwindow* window, int width, int height);
+
+    void setViewDistance(int32_t viewDistance);
 
     auto world() -> auto& { return m_world; }
 
@@ -75,12 +80,12 @@ private:
     std::unique_ptr<FrameBuffer> m_shadowFrameBuffer;
     std::unique_ptr<VertexArray> m_screenTriangle;
 
+    Options m_options;
+
     Frustum m_frustum;
     Frustum m_lightFrustum;
     PerspectiveCamera m_camera;
     ChunkRenderer m_chunkRenderer;
-    
-    Options m_options;
 
     World m_world;
     ChunkMesher m_chunkMesher;

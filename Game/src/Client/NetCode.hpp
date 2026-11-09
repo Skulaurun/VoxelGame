@@ -22,11 +22,15 @@ private:
     Client& m_client;
 
     void onChunkUpdate(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
+    void onSetViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
 
     constexpr static auto MESSAGE_CALLBACK_MAP = []() {
-        Common::Network::MessageCallbackMap<ClientHandler> idToHandler{};
+        using namespace Common::Network;
 
-        idToHandler[Common::Network::MessageId::ChunkUpdate] = &ClientHandler::onChunkUpdate;
+        MessageCallbackMap<ClientHandler> idToHandler{};
+
+        idToHandler[MessageId::ChunkUpdate] = &ClientHandler::onChunkUpdate;
+        idToHandler[MessageId::SetViewDistance] = &ClientHandler::onSetViewDistance;
 
         return idToHandler;
     }();

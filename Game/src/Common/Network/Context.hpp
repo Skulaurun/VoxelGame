@@ -31,12 +31,13 @@ public:
         m_context.stop();
     }
 
-    void pollEvents(bool blocking = true) {
-        if (blocking) m_queueIn.wait();
+    void pollEvents(std::size_t budget = std::numeric_limits<std::size_t>::max(), bool isWaiting = true) {
+        if (isWaiting) {
+            m_queueIn.wait();
+        }
 
-        // TODO: Add budget
-
-        while (!m_queueIn.empty()) {
+        std::size_t i = 0;
+        while (!m_queueIn.empty() && i++ < budget) {
             std::visit(*m_handler, m_queueIn.front());
             m_queueIn.popFront();
         }

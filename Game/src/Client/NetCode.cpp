@@ -2,6 +2,8 @@
 #include "Client/Client.hpp"
 #include "Client/World/Chunk.hpp"
 
+#include <tracy/Tracy.hpp>
+
 #include <print>
 
 namespace Client {
@@ -12,6 +14,7 @@ ClientHandler::ClientHandler(Client& client) :
 
 void ClientHandler::operator()(const Common::Network::Connect& message) {
     std::println("ClientHandler: Connected to server");
+    m_client.requestViewDistance();
 }
 
 void ClientHandler::operator()(const Common::Network::Disconnect& message) {
@@ -22,7 +25,16 @@ void ClientHandler::operator()(Common::Network::IncomingMessage& message) {
     MESSAGE_CALLBACK_MAP(*this, message);
 }
 
+void ClientHandler::onSetViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+    int32_t effectiveViewDistance{};
+    stream.read(effectiveViewDistance);
+
+    m_client.setViewDistance(effectiveViewDistance);
+}
+
 void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+    ZoneScoped;
+
     uint32_t unloadCount{};
     stream.read(unloadCount);
 
@@ -59,6 +71,9 @@ void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> s
 
     glm::vec3 playerChunk{};
     stream.read(playerChunk);
+
+    TracyPlot("Chunk Loads", int64_t{loadCount});
+    TracyPlot("Chunk Unloads", int64_t{unloadCount});
 }
 
 }

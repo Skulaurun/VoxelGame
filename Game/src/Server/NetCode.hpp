@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Server/World/ChunkLoader.hpp"
+#include "Server/World/ClientChunkView.hpp"
 #include "Common/Network/Connection.hpp"
 
 namespace Server {
 
 class Server;
+class World;
 
 // TODO: ServerHandler and ClientHandler are really similar,
 // the message handler dispatching should probably be at higher abstraction layer
@@ -23,17 +24,21 @@ private:
     Server& m_server;
 
     void onPlayerMove(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
+    void onRequestViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
 
     constexpr static auto MESSAGE_CALLBACK_MAP = []() {
-        Common::Network::MessageCallbackMap<ServerHandler> idToHandler{};
+        using namespace Common::Network;
 
-        idToHandler[Common::Network::MessageId::PlayerMove] = &ServerHandler::onPlayerMove;
+        MessageCallbackMap<ServerHandler> idToHandler{};
+
+        idToHandler[MessageId::PlayerMove] = &ServerHandler::onPlayerMove;
+        idToHandler[MessageId::RequestViewDistance] = &ServerHandler::onRequestViewDistance;
 
         return idToHandler;
     }();
 
 };
 
-void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunkLoader);
+void sendChunkUpdate(Common::Network::Connection& connection, World& world, ClientChunkView& chunkView);
 
 }

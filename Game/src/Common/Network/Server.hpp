@@ -26,7 +26,7 @@ public:
 
     // TODO:
     void update() {
-        m_context.pollEvents(false);
+        m_context.pollEvents(128, false);
     }
 
     void connect(const std::shared_ptr<InternalConnection>& incomingConnection) {

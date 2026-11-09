@@ -18,10 +18,31 @@ void ServerHandler::operator()(const Common::Network::Connect& event) {
 
 void ServerHandler::operator()(const Common::Network::Disconnect& event) {
     std::println("ServerHandler: Client disconnected from the server");
+    m_server.removeClient(event.connection);
 }
 
 void ServerHandler::operator()(Common::Network::IncomingMessage& message) {
     MESSAGE_CALLBACK_MAP(*this, message);
+}
+
+void ServerHandler::onRequestViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+    int32_t requestedViewDistance{};
+    stream.read(requestedViewDistance);
+
+    auto* client = m_server.findClient(sender);
+    if (!client) {
+        return;
+    }
+
+    int32_t effectiveViewDistance = std::min(
+        std::max(requestedViewDistance, 0),
+        static_cast<int32_t>(m_server.world().maxViewDistance())
+    );
+    client->chunkView.setViewDistance(effectiveViewDistance);
+
+    Common::Network::Message reply{ .id = Common::Network::MessageId::SetViewDistance };
+    reply.stream.write(effectiveViewDistance);
+    sender->send(reply);
 }
 
 void ServerHandler::onPlayerMove(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
@@ -36,8 +57,8 @@ void ServerHandler::onPlayerMove(std::shared_ptr<Common::Network::Connection> se
     m_server.registry().get<Ecs::Position>(client->playerEntity).value = playerPosition;
 }
 
-void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunkLoader) {
-    if (chunkLoader.chunkEvents().empty()) {
+void sendChunkUpdate(Common::Network::Connection& connection, World& world, ClientChunkView& chunkView) {
+    if (chunkView.events().empty()) {
         return;
     }
 
@@ -47,10 +68,10 @@ void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunk
     uint32_t loadCount{};
     uint32_t unloadCount{};
 
-    for (const auto& chunkEvent : chunkLoader.chunkEvents()) {
-        if (chunkEvent.type == ChunkLoader::Event::Type::Load) {
+    for (const auto& chunkEvent : chunkView.events()) {
+        if (chunkEvent.type == ClientChunkView::Event::Type::Load) {
             loadCount++;
-        } else if (chunkEvent.type == ChunkLoader::Event::Type::Unload) {
+        } else if (chunkEvent.type == ClientChunkView::Event::Type::Unload) {
             unloadCount++;
         }
     }
@@ -64,16 +85,16 @@ void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunk
     stream.write(loadCount);
     loadPosition = stream.head();
 
-    for (const auto& chunkEvent : chunkLoader.chunkEvents()) {
-        if (chunkEvent.type == ChunkLoader::Event::Type::Load) {
+    for (const auto& chunkEvent : chunkView.events()) {
+        if (chunkEvent.type == ClientChunkView::Event::Type::Load) {
             stream.seek(loadPosition);
             {
-                Chunk& chunk = *chunkLoader.loadedChunks()[chunkEvent.id].holder->chunk;
+                Chunk& chunk = *world.chunkAt(chunkEvent.position);
                 stream.write(chunk.position);
                 stream.write(chunk.grid);
             }
             loadPosition = stream.head();
-        } else if (chunkEvent.type == ChunkLoader::Event::Type::Unload) {
+        } else if (chunkEvent.type == ClientChunkView::Event::Type::Unload) {
             stream.seek(unloadPosition);
             {
                 stream.write(chunkEvent.position);
@@ -82,8 +103,10 @@ void sendChunkUpdate(Common::Network::Connection& connection, ChunkLoader& chunk
         }
     }
 
+    chunkView.clearEvents();
+
     stream.seek(loadPosition);
-    stream.write(chunkLoader.playerChunk());
+    stream.write(chunkView.playerChunk());
 
     connection.send(message);
 }

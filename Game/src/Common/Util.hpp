@@ -6,7 +6,19 @@
 
 // TODO: Implement WorldPosition, ChunkPosition, VoxelPosition
 
+constexpr glm::ivec3 toChunkPosition(glm::vec3 worldPosition) {
+    return glm::floor(
+        worldPosition / static_cast<float>(WorldConfig::CHUNK_SIZE)
+    );
+}
+
 constexpr glm::ivec3 toChunkPosition(glm::ivec3 worldPosition) {
+    // NOTE: standard C++ integer division truncates toward zero,
+    // this does floor division (toward negative infinity)
+    // Chunk -1       Chunk 0
+    // [-16.0, 0.0)   [0.0, 16.0)
+    // So that voxel at [-1, 0, 0] belongs to Chunk -1 and not Chunk 0
+
     glm::ivec3 c = worldPosition / WorldConfig::CHUNK_SIZE;
     glm::ivec3 v = worldPosition % WorldConfig::CHUNK_SIZE;
     return glm::ivec3{

@@ -29,14 +29,16 @@ void SocketConnection::connect(const asio::ip::tcp::resolver::results_type& endp
 }
 
 void SocketConnection::close() {
-    if (isConnected()) {
-        auto self = sharedFromThis();
+    asio::post(m_context, [this, self = sharedFromThis()] {
+        if (!isConnected()) {
+            return;
+        }
 
         m_socket.shutdown(asio::socket_base::shutdown_both);
         m_socket.close();
 
         m_queueIn.pushBack(std::in_place_type<Disconnect>, std::move(self), std::error_code{});
-    }
+    });
 }
 
 void SocketConnection::readHeader() {
@@ -104,10 +106,6 @@ void SocketConnection::writeHeaderAndBody() {
 }
 
 void SocketConnection::send(const Message& message) {
-    if (!isConnected()) {
-        return;
-    }
-
     MessageHeader header{};
     header.id = std::to_underlying(message.id);
     header.bodyLength = static_cast<uint32_t>(message.stream.size());
@@ -123,6 +121,9 @@ void SocketConnection::send(const Message& message) {
     std::memcpy(it, message.stream.data().data(), message.stream.size());
 
     asio::post(m_context, [this, buffer = std::move(buffer)]() mutable {
+        if (!isConnected()) {
+            return;
+        }
         bool writing = !m_queueOut.empty();
         m_queueOut.pushBack(std::move(buffer));
         if (!writing) {
@@ -132,7 +133,7 @@ void SocketConnection::send(const Message& message) {
 }
 
 void SocketConnection::handleError(std::shared_ptr<SocketConnection>&& self, std::error_code error) {
-    if (error == asio::error::operation_aborted) {
+    if (error == asio::error::operation_aborted || !isConnected()) {
         // We caused this by either socket.cancel() or socket.close()
         return;
     }

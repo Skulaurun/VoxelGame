@@ -137,8 +137,6 @@ void ChunkMesher::doWork(std::stop_token token) {
 }
 
 void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& grid) {
-    ZoneScoped;
-
     constexpr auto COPY_PATTERNS = createCopyPatterns<Chunk::SIZE, TEMP_SIZE>(NEIGHBOR_OFFSETS);
 
     for (int32_t i = 0; i < NEIGHBOR_OFFSETS.size(); i++) {

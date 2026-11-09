@@ -16,6 +16,7 @@ struct Chunk {
 
     using VoxelGrid = VoxelGrid<WorldConfig::CHUNK_SIZE>;
 
+    // TODO: does this belong here?
     enum class State : uint8_t {
         Empty,
 

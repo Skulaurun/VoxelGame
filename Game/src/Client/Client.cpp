@@ -4,6 +4,7 @@
 
 #include "Server/Server.hpp"
 
+#include <Engine/Core/Log.hpp>
 #include <Engine/Renderer/OpenGL/FrameBuffer.hpp>
 
 #include <GLFW/glfw3.h>
@@ -15,6 +16,7 @@
 #include <tracy/Tracy.hpp>
 
 #include <format>
+#include <print>
 
 namespace Client {
 
@@ -22,8 +24,11 @@ constexpr glm::ivec2 DEFAULT_WINDOW_SIZE{ 1920, 1080 };
 
 constexpr float FOV_Y = 45.0f;
 
-constexpr int32_t CHUNK_RENDER_DISTANCE{ 8 };
-constexpr int32_t RENDER_DISTANCE{ (CHUNK_RENDER_DISTANCE + 1) * Chunk::SIZE };
+constexpr auto toFarPlaneDistance(int32_t chunkRenderDistance) {
+    // TODO: Use spheric ChunkView instead of cubic
+    // (renderDistance == 0) => 1 chunk is visible
+    return toWorldPosition(chunkRenderDistance + 1, 0) * glm::sqrt(3.0f);
+}
 
 auto calculateLightSpaceTransform(
     const PerspectiveCamera& camera,
@@ -95,10 +100,16 @@ auto isControllingCamera(GLFWwindow* window) {
 
 Client::Client() :
     m_window{WindowProperties{ "VoxelGame", DEFAULT_WINDOW_SIZE.x, DEFAULT_WINDOW_SIZE.y }},
-    m_camera{FOV_Y, DEFAULT_WINDOW_SIZE.x / static_cast<float>(DEFAULT_WINDOW_SIZE.y), 0.1f, RENDER_DISTANCE},
 
     m_options{
+        .renderDistance = 8,
         .sunDirection = { 0.4f, 0.8f, 0.3f }
+    },
+
+    m_camera{
+        FOV_Y,
+        DEFAULT_WINDOW_SIZE.x / static_cast<float>(DEFAULT_WINDOW_SIZE.y),
+        0.1f, static_cast<float>(toFarPlaneDistance(m_options.renderDistance))
     },
 
     m_world{},
@@ -210,6 +221,9 @@ Client::Client() :
         // Singleplayer only
         m_internalServer = std::make_unique<Server::Server>();
         m_serverThread = std::jthread{[this] {
+#ifdef TRACY_ENABLE
+            tracy::SetThreadName("Server");
+#endif
             m_internalServer->run();
         }};
         m_internalServer->netServer().connect(m_netClient.createConnection());
@@ -277,7 +291,7 @@ void Client::onMouseButton(GLFWwindow* window, int button, int action, int mods)
 }
 
 void Client::onKey(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetInputMode(window, GLFW_CURSOR,
             isControllingCamera(window) ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED
         );
@@ -318,6 +332,19 @@ void Client::onCursorPosition(GLFWwindow* window, double x, double y) {
     m_camera.setDirection(
         glm::normalize(toCartesian(glm::radians(m_pitch), glm::radians(m_yaw)))
     );
+}
+
+void Client::setViewDistance(int32_t viewDistance) {
+    m_camera.setFarPlane(toFarPlaneDistance(viewDistance));
+}
+
+void Client::requestViewDistance() {
+    // TODO: temporary solution
+    Common::Network::Message message{ .id = Common::Network::MessageId::RequestViewDistance };
+    Common::Network::ProtocolStream& stream = message.stream;
+    int32_t viewDistance = m_options.renderDistance;
+    stream.write(viewDistance);
+    m_netClient.send(message);
 }
 
 void Client::processInput(GLFWwindow* window, const float dt) {
@@ -465,6 +492,9 @@ void Client::update(const float dt) {
 
     if (!isControllingCamera(m_window.nativeWindow())) {
         ImGui::Begin("Options");
+        if (ImGui::SliderInt("Render Distance", &m_options.renderDistance, 1, 64)) {
+            requestViewDistance();
+        }
         ImGui::SliderFloat3("Sun Direction", glm::value_ptr(m_options.sunDirection), -1.0f, 1.0f);
         ImGui::End();
     }

@@ -13,7 +13,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+        "TRACY_ON_DEMAND": true
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -33,7 +34,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+        "TRACY_ENABLE": false
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -53,7 +55,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
-        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}"
+        "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
+        "TRACY_ON_DEMAND": true
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {

@@ -30,12 +30,14 @@ public:
     World& operator=(World&&) = delete;
     World& operator=(const World&) = delete;
 
-    glm::ivec3 castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
+    void update();
 
-    void setViewRange(uint32_t viewRange);
+    auto castRay(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) -> glm::ivec3;
 
-    void addChunk(glm::ivec3 position);
-    void setChunk(std::unique_ptr<Chunk> chunk, Chunk::State state);
+    void addChunk(const glm::ivec3& position);
+    auto setChunk(std::unique_ptr<Chunk> chunk, Chunk::State state) -> Chunk&;
+
+    auto requestChunk(const glm::ivec3& position) -> Chunk::Holder&;
 
     template<typename Self>
     auto chunkHolderAt(this Self&& self, glm::ivec3 position)
@@ -58,18 +60,19 @@ public:
         return chunk ? chunk->grid.at(toLocalPosition(worldPosition)) : nullptr;
     }
 
-    auto viewRange() const { return m_viewRange; }
+    void setMaxViewDistance(int32_t maxViewDistance) { m_maxViewDistance = maxViewDistance; }
 
-    WorldGenerator& generator() { return m_generator; }
+    auto maxViewDistance() const { return m_maxViewDistance; }
+    auto generator() -> WorldGenerator& { return m_generator; }
 
 private:
     ChunkMap m_chunks;
-
     WorldGenerator m_generator;
 
-    uint32_t m_viewRange;
+    std::vector<glm::ivec3> m_chunksToGenerate;
 
-    //mutable TracyLockable(std::mutex, m_mtxChunks);
+    // TODO: should be config variable
+    int32_t m_maxViewDistance;
 
 };
 
