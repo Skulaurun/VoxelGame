@@ -14,7 +14,7 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": true,
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/install/${presetName}",
-        "TRACY_ON_DEMAND": true
+        "TRACY_ON_DEMAND": false
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {

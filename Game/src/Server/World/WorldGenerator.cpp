@@ -46,28 +46,43 @@ void WorldGenerator::prepareChunks(std::size_t begin, std::size_t end) {
 // Terrain Generation
 // -------------------------------------------------
 
-float density(const glm::vec3& worldPosition) {
-    const float scale = 0.05f;
-    float baseHeight = 48.0f + perlinNoise(glm::vec2{worldPosition.x, worldPosition.z} * scale) * 32.0f;
-    float bias = -1.0f + (worldPosition.y / baseHeight) * 2.0f;
-
-    return perlinNoise(worldPosition * scale) - bias;
-}
-
 void WorldGenerator::generateTerrain(Chunk& chunk) {
-    for (int32_t y = 0; y < Chunk::SIZE; y++) {
-        for (int32_t x = 0; x < Chunk::SIZE; x++) {
-            for (int32_t z = 0; z < Chunk::SIZE; z++) {
-                glm::ivec3 worldPosition = toWorldPosition(chunk.position, {x, y, z});
-                if (density(worldPosition) > 0.0f) {
+    ZoneScoped;
+
+    for (int32_t x = 0; x < Chunk::SIZE; x++) {
+        for (int32_t z = 0; z < Chunk::SIZE; z++) {
+            auto worldX = toWorldPosition(chunk.position.x, x);
+            auto worldZ = toWorldPosition(chunk.position.z, z);
+
+            const float scale = 0.05f;
+            const float baseHeight = 48.0f + perlinNoise(glm::vec2{worldX, worldZ} * scale) * 32.0f;
+
+            const auto density = [scale, baseHeight](const glm::vec3& position) -> float {
+                float bias = -1.0f + (position.y / baseHeight) * 2.0f;
+                return perlinNoise(position * scale) - bias;
+            };
+
+            auto worldY = toWorldPosition(chunk.position.y, Chunk::SIZE - 1);
+            glm::ivec3 worldPosition{worldX, worldY, worldZ};
+
+            float aboveDensity = 0.0f;
+            for (int32_t y = Chunk::SIZE - 1; y >= 0; y--, worldPosition.y--) {
+                const float levelDensity = density(worldPosition);
+
+                if (levelDensity > 0.0f) {
+                    if (y == Chunk::SIZE - 1) {
+                        aboveDensity = density(worldPosition + glm::ivec3{0, 1, 0});
+                    }
+
                     BlockType type = BlockType::Stone;
 
-                    if (density(worldPosition + glm::ivec3{0, 1, 0}) <= 0.0f) {
+                    if (aboveDensity <= 0.0f) {
                         type = BlockType::Grass;
                     }
 
                     *chunk.grid.at({x, y, z}) = static_cast<Voxel>(type);
                 }
+                aboveDensity = levelDensity;
             }
         }
     }
