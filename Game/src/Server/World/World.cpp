@@ -5,7 +5,9 @@
 namespace Server {
 
 World::World() :
-    m_generator{*this}
+    m_generator{*this,
+        glm::clamp(std::thread::hardware_concurrency() / 2, 1u, 8u)
+    }
 {}
 
 void World::update() {

@@ -11,7 +11,7 @@ WorldGenerator::WorldGenerator(World& world, std::size_t threadCount) :
     m_world{world},
     m_running{true}
 {
-    for (std::size_t i = 1; i < threadCount; i++) {
+    for (std::size_t i = 0; i < threadCount; i++) {
         m_threads.emplace_back(&WorldGenerator::doWork, this);
     }
 }

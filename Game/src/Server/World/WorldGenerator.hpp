@@ -34,7 +34,7 @@ public:
     };
 
 public:
-    WorldGenerator(World& world, std::size_t threadCount = std::thread::hardware_concurrency());
+    WorldGenerator(World& world, std::size_t threadCount);
     ~WorldGenerator();
 
     // commit results to m_world,
