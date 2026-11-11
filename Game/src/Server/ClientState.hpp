@@ -13,7 +13,7 @@ struct ClientState {
     entt::entity playerEntity;
     ClientChunkView chunkView;
 
-    std::shared_ptr<Common::Network::Connection> connection;
+    std::shared_ptr<Network::Connection> connection;
 };
 
 }

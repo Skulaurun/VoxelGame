@@ -5,7 +5,7 @@
 
 #include "Asio.hpp"
 
-namespace Common::Network {
+namespace Network {
 
 template<typename Handler>
 class Context {

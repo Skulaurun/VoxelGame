@@ -3,8 +3,6 @@
 #include <deque>
 #include <mutex>
 
-namespace Common {
-
 template<typename Value>
 class TsQueue {
 
@@ -83,5 +81,3 @@ private:
     std::deque<Value> m_queue;
 
 };
-
-}

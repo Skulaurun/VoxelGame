@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace Common::Network {
+namespace Network {
 
 enum class MessageId : uint16_t {
     _Unknown_ = 0,

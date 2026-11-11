@@ -16,18 +16,18 @@ class ServerHandler {
 public:
     ServerHandler(Server& server);
 
-    void operator()(const Common::Network::Connect& event);
-    void operator()(const Common::Network::Disconnect& event);
-    void operator()(Common::Network::IncomingMessage& message);
+    void operator()(const Network::Connect& event);
+    void operator()(const Network::Disconnect& event);
+    void operator()(Network::IncomingMessage& message);
 
 private:
     Server& m_server;
 
-    void onPlayerMove(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
-    void onRequestViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
+    void onPlayerMove(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream);
+    void onRequestViewDistance(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream);
 
     constexpr static auto MESSAGE_CALLBACK_MAP = []() {
-        using namespace Common::Network;
+        using namespace Network;
 
         MessageCallbackMap<ServerHandler> idToHandler{};
 
@@ -39,6 +39,6 @@ private:
 
 };
 
-void sendChunkUpdate(Common::Network::Connection& connection, World& world, ClientChunkView& chunkView);
+void sendChunkUpdate(Network::Connection& connection, World& world, ClientChunkView& chunkView);
 
 }

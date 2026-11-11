@@ -4,7 +4,7 @@
 #include "Connection.hpp"
 #include "Context.hpp"
 
-namespace Common::Network {
+namespace Network {
 
 template<typename Handler>
 class Server {

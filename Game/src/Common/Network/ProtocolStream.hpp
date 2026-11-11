@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-namespace Common::Network {
+namespace Network {
 
 constexpr auto NETWORK_BYTE_ORDER = std::endian::big;
 

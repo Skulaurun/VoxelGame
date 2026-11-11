@@ -5,8 +5,6 @@
 
 #include <glm/glm.hpp>
 
-namespace Common {
-
 // struct Chunk {
 //     constexpr static auto SIZE = WorldConfig::CHUNK_SIZE;
 //     using VoxelGrid = VoxelGrid<SIZE>;
@@ -21,5 +19,3 @@ namespace Common {
 //         };
 //     }
 // };
-
-}

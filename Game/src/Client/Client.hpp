@@ -104,7 +104,7 @@ private:
     float m_fps;
 
     std::shared_ptr<ClientHandler> m_messageHandler;
-    Common::Network::Client<ClientHandler> m_netClient;
+    Network::Client<ClientHandler> m_netClient;
 
     // The thread needs to be destroyed before the server
     std::unique_ptr<Server::Server> m_internalServer;

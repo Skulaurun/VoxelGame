@@ -6,7 +6,7 @@
 #include <string>
 #include <cstdint>
 
-namespace Common::Network {
+namespace Network {
 
 template<typename Handler>
 class Client {

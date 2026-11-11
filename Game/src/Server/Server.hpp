@@ -29,11 +29,11 @@ public:
 
     bool isRunning() const { return m_running.load(); }
 
-    void addClient(std::shared_ptr<Common::Network::Connection> connection);
-    void removeClient(const std::shared_ptr<Common::Network::Connection>& connection);
+    void addClient(std::shared_ptr<Network::Connection> connection);
+    void removeClient(const std::shared_ptr<Network::Connection>& connection);
 
     auto findClient(ClientId id) -> ClientState*;
-    auto findClient(const std::shared_ptr<Common::Network::Connection>& connection) -> ClientState*;
+    auto findClient(const std::shared_ptr<Network::Connection>& connection) -> ClientState*;
 
     auto requestClientChunk(ClientId id, const glm::ivec3& position) -> bool;
 
@@ -54,12 +54,12 @@ private:
     entt::registry m_registry;
 
     std::shared_ptr<ServerHandler> m_messageHandler;
-    Common::Network::Server<ServerHandler> m_netServer;
+    Network::Server<ServerHandler> m_netServer;
 
     std::vector<ClientState> m_clients;
 
     std::unordered_map<
-        Common::Network::Connection*,
+        Network::Connection*,
         std::size_t
     > m_connectionToClient;
 

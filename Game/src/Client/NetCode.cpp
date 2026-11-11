@@ -12,27 +12,27 @@ ClientHandler::ClientHandler(Client& client) :
     m_client{client}
 {}
 
-void ClientHandler::operator()(const Common::Network::Connect& message) {
+void ClientHandler::operator()(const Network::Connect& message) {
     std::println("ClientHandler: Connected to server");
     m_client.requestViewDistance();
 }
 
-void ClientHandler::operator()(const Common::Network::Disconnect& message) {
+void ClientHandler::operator()(const Network::Disconnect& message) {
     std::println("ClientHandler: Disconnected from server");
 }
 
-void ClientHandler::operator()(Common::Network::IncomingMessage& message) {
+void ClientHandler::operator()(Network::IncomingMessage& message) {
     MESSAGE_CALLBACK_MAP(*this, message);
 }
 
-void ClientHandler::onSetViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+void ClientHandler::onSetViewDistance(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream) {
     int32_t effectiveViewDistance{};
     stream.read(effectiveViewDistance);
 
     m_client.setViewDistance(effectiveViewDistance);
 }
 
-void ClientHandler::onChunkUpdate(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+void ClientHandler::onChunkUpdate(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream) {
     ZoneScoped;
 
     uint32_t unloadCount{};

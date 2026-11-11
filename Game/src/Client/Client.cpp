@@ -341,8 +341,8 @@ void Client::setViewDistance(int32_t viewDistance) {
 
 void Client::requestViewDistance() {
     // TODO: temporary solution
-    Common::Network::Message message{ .id = Common::Network::MessageId::RequestViewDistance };
-    Common::Network::ProtocolStream& stream = message.stream;
+    Network::Message message{ .id = Network::MessageId::RequestViewDistance };
+    Network::ProtocolStream& stream = message.stream;
     int32_t viewDistance = m_options.renderDistance;
     stream.write(viewDistance);
     m_netClient.send(message);
@@ -471,8 +471,8 @@ void Client::update(const float dt) {
     processInput(m_window.nativeWindow(), dt);
 
     { // TODO: temporary solution
-        Common::Network::Message message{ .id = Common::Network::MessageId::PlayerMove };
-        Common::Network::ProtocolStream& stream = message.stream;
+        Network::Message message{ .id = Network::MessageId::PlayerMove };
+        Network::ProtocolStream& stream = message.stream;
         stream.write(m_camera.position());
         m_netClient.send(message);
     }

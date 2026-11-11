@@ -14,18 +14,18 @@ class ClientHandler {
 public:
     ClientHandler(Client& client);
 
-    void operator()(const Common::Network::Connect& message);
-    void operator()(const Common::Network::Disconnect& message);
-    void operator()(Common::Network::IncomingMessage& message);
+    void operator()(const Network::Connect& message);
+    void operator()(const Network::Disconnect& message);
+    void operator()(Network::IncomingMessage& message);
 
 private:
     Client& m_client;
 
-    void onChunkUpdate(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
-    void onSetViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream);
+    void onChunkUpdate(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream);
+    void onSetViewDistance(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream);
 
     constexpr static auto MESSAGE_CALLBACK_MAP = []() {
-        using namespace Common::Network;
+        using namespace Network;
 
         MessageCallbackMap<ClientHandler> idToHandler{};
 

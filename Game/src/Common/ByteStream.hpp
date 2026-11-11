@@ -8,8 +8,6 @@
 #include <vector>
 #include <stdexcept>
 
-namespace Common {
-
 // TODO: consider splitting into ReadStream and WriteStream
 
 template<std::endian Endian>
@@ -89,5 +87,3 @@ private:
     std::size_t m_head;
     std::vector<std::byte> m_data;
 };
-
-}

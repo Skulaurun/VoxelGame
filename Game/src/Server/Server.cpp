@@ -34,7 +34,7 @@ Server::~Server() {
     stop();
 }
 
-void Server::addClient(std::shared_ptr<Common::Network::Connection> connection) {
+void Server::addClient(std::shared_ptr<Network::Connection> connection) {
     entt::entity playerEntity = m_registry.create();
     m_registry.emplace_or_replace<Ecs::Position>(playerEntity);
 
@@ -46,7 +46,7 @@ void Server::addClient(std::shared_ptr<Common::Network::Connection> connection) 
     m_connectionToClient.emplace(connection.get(), index);
 }
 
-void Server::removeClient(const std::shared_ptr<Common::Network::Connection>& connection) {
+void Server::removeClient(const std::shared_ptr<Network::Connection>& connection) {
     if (auto clientPtr = findClient(connection)) {
         m_registry.destroy(clientPtr->playerEntity);
 
@@ -71,7 +71,7 @@ auto Server::findClient(ClientId id) -> ClientState* {
     return (it != m_idToClient.end()) ? &m_clients[it->second] : nullptr;
 }
 
-auto Server::findClient(const std::shared_ptr<Common::Network::Connection>& connection) -> ClientState* {
+auto Server::findClient(const std::shared_ptr<Network::Connection>& connection) -> ClientState* {
     auto it = m_connectionToClient.find(connection.get());
     return (it != m_connectionToClient.end()) ? &m_clients[it->second] : nullptr;
 }

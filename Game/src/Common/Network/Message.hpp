@@ -7,7 +7,7 @@
 #include <memory>
 #include <system_error>
 
-namespace Common::Network {
+namespace Network {
 
 class Connection;
 

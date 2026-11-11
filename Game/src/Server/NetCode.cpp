@@ -11,21 +11,21 @@ ServerHandler::ServerHandler(Server& server) :
     m_server{server}
 {}
 
-void ServerHandler::operator()(const Common::Network::Connect& event) {
+void ServerHandler::operator()(const Network::Connect& event) {
     std::println("ServerHandler: Client connected to server");
     m_server.addClient(event.connection);
 }
 
-void ServerHandler::operator()(const Common::Network::Disconnect& event) {
+void ServerHandler::operator()(const Network::Disconnect& event) {
     std::println("ServerHandler: Client disconnected from the server");
     m_server.removeClient(event.connection);
 }
 
-void ServerHandler::operator()(Common::Network::IncomingMessage& message) {
+void ServerHandler::operator()(Network::IncomingMessage& message) {
     MESSAGE_CALLBACK_MAP(*this, message);
 }
 
-void ServerHandler::onRequestViewDistance(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+void ServerHandler::onRequestViewDistance(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream) {
     int32_t requestedViewDistance{};
     stream.read(requestedViewDistance);
 
@@ -40,12 +40,12 @@ void ServerHandler::onRequestViewDistance(std::shared_ptr<Common::Network::Conne
     );
     client->chunkView.setViewDistance(effectiveViewDistance);
 
-    Common::Network::Message reply{ .id = Common::Network::MessageId::SetViewDistance };
+    Network::Message reply{ .id = Network::MessageId::SetViewDistance };
     reply.stream.write(effectiveViewDistance);
     sender->send(reply);
 }
 
-void ServerHandler::onPlayerMove(std::shared_ptr<Common::Network::Connection> sender, Common::Network::ProtocolStream& stream) {
+void ServerHandler::onPlayerMove(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream) {
     glm::vec3 playerPosition{};
     stream.read(playerPosition);
     
@@ -57,13 +57,13 @@ void ServerHandler::onPlayerMove(std::shared_ptr<Common::Network::Connection> se
     m_server.registry().get<Ecs::Position>(client->playerEntity).value = playerPosition;
 }
 
-void sendChunkUpdate(Common::Network::Connection& connection, World& world, ClientChunkView& chunkView) {
+void sendChunkUpdate(Network::Connection& connection, World& world, ClientChunkView& chunkView) {
     if (chunkView.events().empty()) {
         return;
     }
 
-    Common::Network::Message message{ .id = Common::Network::MessageId::ChunkUpdate };
-    Common::Network::ProtocolStream& stream = message.stream;
+    Network::Message message{ .id = Network::MessageId::ChunkUpdate };
+    Network::ProtocolStream& stream = message.stream;
 
     uint32_t loadCount{};
     uint32_t unloadCount{};

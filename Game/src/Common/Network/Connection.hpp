@@ -5,7 +5,7 @@
 
 #include "Asio.hpp"
 
-namespace Common::Network {
+namespace Network {
 
 class Connection : public std::enable_shared_from_this<Connection> {
 

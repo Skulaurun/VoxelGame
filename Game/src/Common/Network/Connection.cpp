@@ -1,6 +1,6 @@
 #include "Connection.hpp"
 
-namespace Common::Network {
+namespace Network {
 
 Connection::Connection(TsQueue<Event>& queue) :
     m_queueIn{queue}
@@ -46,7 +46,7 @@ void SocketConnection::readHeader() {
         [this, self = sharedFromThis()](std::error_code error, std::size_t length) mutable {
             if (!error) {
                 MessageHeader header{};
-                Common::ReadIterator it = m_headerIn;
+                ReadIterator it = m_headerIn;
                 readNumber<NETWORK_BYTE_ORDER>(header.id, it);
                 readNumber<NETWORK_BYTE_ORDER>(header.bodyLength, it);
 
@@ -113,7 +113,7 @@ void SocketConnection::send(const Message& message) {
     Buffer buffer{};
     buffer.resize(sizeof(MessageHeader) + header.bodyLength);
 
-    Common::WriteIterator it = buffer.data();
+    WriteIterator it = buffer.data();
     writeNumber<NETWORK_BYTE_ORDER>(header.id, it);
     writeNumber<NETWORK_BYTE_ORDER>(header.bodyLength, it);
 

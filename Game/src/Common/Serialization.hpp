@@ -4,8 +4,6 @@
 #include <cstring>
 #include <concepts>
 
-namespace Common {
-
 template<typename Value>
     requires(std::is_integral_v<Value> || std::is_floating_point_v<Value>)
 constexpr auto byteswap(Value value) {
@@ -45,6 +43,4 @@ void writeNumber(Value value, WriteIterator& iterator) {
 
     std::memcpy(iterator, &value, sizeof(Value));
     iterator += Size;
-}
-
 }
