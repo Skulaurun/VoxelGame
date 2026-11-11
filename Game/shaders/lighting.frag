@@ -82,7 +82,7 @@ void main()
 
     if (depth >= 1.0) {
         // camera near -> far
-        vec3 viewRay = normalize(toWorldPosition(uv, 1.0) - toWorldPosition(uv, -1.0));
+        vec3 viewRay = normalize(toWorldPosition(uv, 1.0) - toWorldPosition(uv, 0.0));
 
         fragment = vec4(renderSky(viewRay), 1.0);
         return;

@@ -164,7 +164,7 @@ void ChunkMesher::copyNeighborData(const Chunk& chunk, VoxelGrid<TEMP_SIZE>& gri
             for (int32_t y = 0; y < copyPattern.counts.y; y++) {
                 for (int32_t x = 0; x < copyPattern.counts.x; x++) {
                     grid[copyPattern.dstOffset + grid.indexOf({x, y, 0})]
-                            = neighbor->grid[copyPattern.srcOffset + neighbor->grid.indexOf({x, y, 0})];
+                        = neighbor->grid[copyPattern.srcOffset + neighbor->grid.indexOf({x, y, 0})];
                 }
             }
         }
@@ -230,7 +230,6 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
 
                             glm::vec3 position = CUBE_FACES[i * 4 + j];
                             position += glm::ivec3{x - 1, y - 1, z - 1};
-                            position += chunkPosition * Chunk::SIZE;
 
                             const auto side1 = grid.at(voxelPosition + std::get<0>(aoOffsets));
                             const auto side2 = grid.at(voxelPosition + std::get<1>(aoOffsets));
@@ -255,7 +254,7 @@ void ChunkMesher::mesh(const VoxelGrid<TEMP_SIZE>& grid, const glm::ivec3& chunk
 
     // TODO: same for every chunk
     generateQuadIndices(mesh.indices, quadCount);
-    mesh.boundingBox = Chunk::box(chunkPosition);
+    mesh.boundingBox = Chunk::box();
 }
 
 }

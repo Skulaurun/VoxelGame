@@ -48,7 +48,7 @@ public:
     void run();
     void update(const float dt);
 
-    void renderScene(const Frustum& frustum);
+    void renderScene(const glm::vec3& origin, const Frustum& frustum, Shader& shader);
     void doRenderPipeline();
 
     void requestViewDistance();

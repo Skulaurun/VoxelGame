@@ -5,6 +5,7 @@
 #include "Server/Server.hpp"
 
 #include <Engine/Core/Log.hpp>
+#include <Engine/Renderer/RenderView.hpp>
 #include <Engine/Renderer/OpenGL/FrameBuffer.hpp>
 
 #include <GLFW/glfw3.h>
@@ -16,7 +17,6 @@
 #include <tracy/Tracy.hpp>
 
 #include <format>
-#include <print>
 
 namespace Client {
 
@@ -31,12 +31,13 @@ constexpr auto toFarPlaneDistance(int32_t chunkRenderDistance) {
 }
 
 auto calculateLightSpaceTransform(
+    const RenderView& renderView,
     const PerspectiveCamera& camera,
     const glm::vec3& lightDirection,
     const glm::vec2& shadowResolution
 ) {
     const auto midpoint = (camera.near() + camera.far()) / 2.0f;
-    const auto cameraCenter = camera.position() + midpoint * camera.direction();
+    const auto cameraCenter = midpoint * camera.direction();
 
     const auto lightView = glm::lookAt(
         cameraCenter + lightDirection,
@@ -49,7 +50,7 @@ auto calculateLightSpaceTransform(
     float radius{0.0f};
     float minZ{std::numeric_limits<float>::max()};
     float maxZ{std::numeric_limits<float>::lowest()};
-    for (const auto& worldPoint : Frustum::worldBounds(camera.viewProjection())) {
+    for (const auto& worldPoint : Frustum::worldBounds(renderView.viewProjection())) {
         const auto point = glm::vec3{lightView * glm::vec4{worldPoint, 1.0f}};
         minZ = glm::min(minZ, point.z);
         maxZ = glm::max(maxZ, point.z);
@@ -83,7 +84,7 @@ auto calculateLightSpaceTransform(
     auto lightViewProjection = lightProjection * lightView;
 
     // Snap to texel grid
-    const auto originClip = lightViewProjection * glm::vec4{0.0f, 0.0f, 0.0f, 1.0f};
+    const auto originClip = lightViewProjection * glm::vec4{-renderView.origin(), 1.0f};
     const auto originNdc = glm::vec3{originClip} / originClip.w;
     const auto originTexel = glm::vec2{originNdc} * (shadowResolution / 2.0f);
     auto offset = glm::round(originTexel) - originTexel;
@@ -372,14 +373,20 @@ void Client::processInput(GLFWwindow* window, const float dt) {
     m_camera.setPosition(position);
 }
 
-void Client::renderScene(const Frustum& frustum) {
-    m_chunkRenderer.render(frustum);
+void Client::renderScene(const glm::vec3& origin, const Frustum& frustum, Shader& shader) {
+    m_chunkRenderer.render(origin, frustum, shader);
 }
 
 void Client::doRenderPipeline() {
-    m_frustum.update(m_camera.viewProjection());
+    const RenderView renderView{
+        glm::mat3{m_camera.view()},
+        m_camera.projection(),
+        m_camera.position()
+    };
 
-    const auto lightViewProjection = calculateLightSpaceTransform(m_camera, m_options.sunDirection, {
+    m_frustum.update(renderView.viewProjection());
+
+    const auto lightViewProjection = calculateLightSpaceTransform(renderView, m_camera, m_options.sunDirection, {
         m_shadowFrameBuffer->specification().width,
         m_shadowFrameBuffer->specification().height
     });
@@ -395,7 +402,7 @@ void Client::doRenderPipeline() {
         m_shadowShader->bind();
         m_shadowShader->setUniform("uViewProjection", lightViewProjection);
 
-        renderScene(m_lightFrustum);
+        renderScene(renderView.origin(), m_lightFrustum, *m_shadowShader);
 
         m_shadowFrameBuffer->unbind();
 
@@ -415,9 +422,9 @@ void Client::doRenderPipeline() {
         Renderer::clear(glm::vec4{});
 
         m_defaultShader->bind();
-        m_defaultShader->setUniform("uViewProjection", m_camera.viewProjection());
+        m_defaultShader->setUniform("uViewProjection", renderView.viewProjection());
 
-        renderScene(m_frustum);
+        renderScene(renderView.origin(), m_frustum, *m_defaultShader);
 
         m_frameBuffer->unbind();
     }
@@ -432,7 +439,7 @@ void Client::doRenderPipeline() {
         m_lightingShader->setUniform("uSunIntensity", 1.0f);
         m_lightingShader->setUniform("uAmbientColor", glm::vec3{0.55f, 0.60f, 0.70f});
         m_lightingShader->setUniform("uSkyColor", glm::vec3{0.60f, 0.85f, 1.0f});
-        m_lightingShader->setUniform("uViewProjection", m_camera.viewProjection());
+        m_lightingShader->setUniform("uViewProjection", renderView.viewProjection());
         m_lightingShader->setUniform("uLightViewProjection", lightViewProjection);
 
         m_frameBuffer->bindAttachments(0);

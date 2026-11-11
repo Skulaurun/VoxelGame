@@ -25,10 +25,10 @@ struct Chunk {
     Mesh mesh;
     uint8_t neighborCount{0};
 
-    constexpr static auto box(const glm::ivec3& position) -> AlignedBox3f {
+    constexpr static auto box() -> AlignedBox3f {
         return {
-            toWorldPosition(position, {0, 0, 0}),
-            toWorldPosition(position, {SIZE, SIZE, SIZE})
+            {0, 0, 0},
+            {SIZE, SIZE, SIZE}
         };
     }
 };

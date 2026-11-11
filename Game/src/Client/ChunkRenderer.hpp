@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Client/World/Chunk.hpp"
-
+#include <Engine/Renderer/OpenGL/Shader.hpp>
 #include <Engine/Renderer/OpenGL/IndexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexBuffer.hpp>
 #include <Engine/Renderer/OpenGL/VertexArray.hpp>
@@ -28,6 +27,7 @@ public:
         uint32_t indexCount{0};
         std::shared_ptr<VertexArray> vertexArray;
         AlignedBox3f boundingBox;
+        glm::ivec3 position;
     };
 
     struct Statistics {
@@ -39,7 +39,7 @@ public:
     // TODO: remove after Client has member that initializes OpenGL
     void init();
 
-    void render(const Frustum& frustum);
+    void render(const glm::dvec3& origin, const Frustum& frustum, Shader& shader);
 
     void loadMesh(const glm::ivec3& position, const Mesh& mesh);
     void unloadMesh(const glm::ivec3& position);

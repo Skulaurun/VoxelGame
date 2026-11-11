@@ -15,12 +15,10 @@ PerspectiveCamera::PerspectiveCamera(float fovY, float aspectRatio, float near, 
     m_projectionDirty{true},
 
     m_view{1.0f},
-    m_projection{1.0f},
-    m_viewProjection{1.0f}
+    m_projection{1.0f}
 {
     updateView();
     updateProjection();
-    updateViewProjection();
 }
 
 void PerspectiveCamera::updateView() const {
@@ -29,8 +27,4 @@ void PerspectiveCamera::updateView() const {
 
 void PerspectiveCamera::updateProjection() const {
     m_projection = glm::perspective(glm::radians(m_fovY), m_aspectRatio, m_near, m_far);
-}
-
-void PerspectiveCamera::updateViewProjection() const {
-    m_viewProjection = m_projection * m_view;
 }

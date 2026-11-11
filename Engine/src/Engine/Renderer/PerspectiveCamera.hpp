@@ -39,20 +39,10 @@ public:
         }
         return m_projection;
     }
-    auto viewProjection() const -> const auto& {
-        if (m_viewDirty || m_projectionDirty) {
-            if (m_viewDirty) updateView();
-            if (m_projectionDirty) updateProjection();
-            updateViewProjection();
-            m_viewDirty = m_projectionDirty = false;
-        }
-        return m_viewProjection;
-    }
 
 private:
     void updateView() const;
     void updateProjection() const;
-    void updateViewProjection() const;
 
 private:
     float m_fovY;
@@ -68,6 +58,5 @@ private:
 
     mutable glm::mat4 m_view;
     mutable glm::mat4 m_projection;
-    mutable glm::mat4 m_viewProjection;
 
 };
