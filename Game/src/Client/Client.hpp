@@ -3,6 +3,8 @@
 #include "Client/ChunkMesher.hpp"
 #include "Client/ChunkRenderer.hpp"
 #include "Client/World/World.hpp"
+
+#include "Common/Common.hpp"
 #include "Common/Network/Client.hpp"
 
 #include <Engine/Renderer/Frustum.hpp>
@@ -10,6 +12,8 @@
 #include <Engine/Renderer/OpenGL/Shader.hpp>
 
 #include <Engine/Core/Window.hpp>
+
+#include <entt/entt.hpp>
 
 #include <memory>
 #include <thread>
@@ -46,12 +50,19 @@ public:
     Client& operator=(const Client&) = delete;
 
     void run();
-    void update(const float dt);
+    void update(float dt);
+    void render(float dt);
+    void beginFrame();
+    void endFrame();
 
-    void renderScene(const glm::vec3& origin, const Frustum& frustum, Shader& shader);
+    void renderScene(
+        const glm::vec3& origin,
+        const glm::mat4& viewProjection,
+        const Frustum& frustum,
+        Shader& terrainShader,
+        Shader& entityShader
+    );
     void doRenderPipeline();
-
-    void requestViewDistance();
 
     void finish();
 
@@ -63,16 +74,22 @@ public:
     void onKey(GLFWwindow* window, int key, int scancode, int action, int mods);
     void onFrameBufferSize(GLFWwindow* window, int width, int height);
 
+    void updateServerTime(float serverTime);
+
     void setViewDistance(int32_t viewDistance);
 
     auto world() -> auto& { return m_world; }
+    auto registry() -> auto& { return m_registry; }
+    auto options() -> auto& { return m_options; }
+    auto camera() -> auto& { return m_camera; }
+    auto biEntityToNetworkId() { return std::tie(m_entityToNetworkId, m_networkIdToEntity); }
 
     // TODO: ??
     auto chunkMesher() -> auto& { return m_chunkMesher; }
     auto chunkRenderer() -> auto& { return m_chunkRenderer; }
 
 private:
-    void processInput(GLFWwindow* window, const float dt);
+    void processInput(GLFWwindow* window);
 
 private:
     Window m_window;
@@ -90,9 +107,18 @@ private:
     World m_world;
     ChunkMesher m_chunkMesher;
 
+    float m_realTime;
+    float m_simulationTime;
+    float m_serverTimeOffset;
+    entt::entity m_playerEntity;
+    entt::registry m_registry;
+
+    std::pair<std::shared_ptr<VertexArray>, uint32_t> m_playerMesh;
+
     std::unique_ptr<Shader> m_defaultShader;
     std::unique_ptr<Shader> m_lightingShader;
     std::unique_ptr<Shader> m_shadowShader;
+    std::unique_ptr<Shader> m_entityShader;
     std::unique_ptr<Shader> m_debugShader;
 
     // TODO: Make camera controller
@@ -105,6 +131,9 @@ private:
 
     std::shared_ptr<ClientHandler> m_messageHandler;
     Network::Client<ClientHandler> m_netClient;
+
+    std::unordered_map<entt::entity, NetworkId> m_entityToNetworkId;
+    std::unordered_map<NetworkId, entt::entity> m_networkIdToEntity;
 
     // The thread needs to be destroyed before the server
     std::unique_ptr<Server::Server> m_internalServer;

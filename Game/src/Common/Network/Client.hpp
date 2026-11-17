@@ -13,7 +13,8 @@ class Client {
 
 public:
     Client(std::shared_ptr<Handler> handler) :
-        m_context{std::move(handler)}
+        m_context{std::move(handler)},
+        m_connection{std::make_shared<InternalConnection>(m_context.queueIn())}
     {}
 
     void start() {
@@ -48,20 +49,16 @@ public:
     }
 
     void send(const Message& message) {
-        if (!m_connection) {
-            return;
-        }
         m_connection->send(message);
     }
 
     void disconnect() {
-        if (!m_connection) {
-            return;
-        }
         m_connection->close();
         // TODO: wait for close?
         m_connection.reset();
     }
+
+    auto connection() -> auto& { return m_connection; }
 
 private:
     Context<Handler> m_context;

@@ -2,11 +2,14 @@
 #include "NetCode.hpp"
 #include "ShaderFile.hpp"
 
+#include "Client/ECS/Component.hpp"
+
 #include "Server/Server.hpp"
 
-#include <Engine/Core/Log.hpp>
 #include <Engine/Renderer/RenderView.hpp>
 #include <Engine/Renderer/OpenGL/FrameBuffer.hpp>
+#include <Engine/Util.hpp>
+#include <Engine/Core/Log.hpp>
 
 #include <GLFW/glfw3.h>
 
@@ -116,6 +119,11 @@ Client::Client() :
     m_world{},
     m_chunkMesher{m_world},
 
+    m_realTime{},
+    m_simulationTime{},
+    m_serverTimeOffset{},
+    m_playerEntity{entt::null},
+
     m_cameraSpeed{10.0f},
     m_yaw{-90.0f},
     m_pitch{0.0f},
@@ -178,6 +186,31 @@ Client::Client() :
 
     m_screenTriangle = std::make_unique<VertexArray>();
 
+    {
+        auto vertexArray = std::make_shared<VertexArray>();
+
+        struct PlayerVertex {
+            glm::vec3 position;
+            glm::vec3 normal;
+        };
+
+        std::vector<PlayerVertex> vertices{};
+        std::vector<uint32_t> indices{};
+        generateSphere(vertices, indices, 40);
+
+        auto vertexBuffer = std::make_shared<VertexBuffer>(vertices.data(), vertices.size() * sizeof(PlayerVertex));
+        vertexBuffer->setLayout({
+            VertexAttributeType::Float3,
+            VertexAttributeType::Float3
+        });
+
+        vertexArray->addVertexBuffer(vertexBuffer);
+        vertexArray->setIndexBuffer(std::make_shared<IndexBuffer>(indices.data(), indices.size() * sizeof(uint32_t)));
+
+        m_playerMesh.first = std::move(vertexArray);
+        m_playerMesh.second = indices.size();
+    }
+
     m_defaultShader = std::make_unique<Shader>(std::vector<ShaderSource>{
         { ShaderType::Vertex, embedView(ShaderFile::defaultVertex) },
         { ShaderType::Fragment, embedView(ShaderFile::defaultFragment) },
@@ -190,6 +223,11 @@ Client::Client() :
 
     m_shadowShader = std::make_unique<Shader>(std::vector<ShaderSource>{
         { ShaderType::Vertex, embedView(ShaderFile::shadowVertex) }
+    });
+
+    m_entityShader = std::make_unique<Shader>(std::vector<ShaderSource>{
+        { ShaderType::Vertex, embedView(ShaderFile::entityVertex) },
+        { ShaderType::Fragment, embedView(ShaderFile::entityFragment) }
     });
 
     m_debugShader = std::make_unique<Shader>(std::vector<ShaderSource>{
@@ -335,46 +373,59 @@ void Client::onCursorPosition(GLFWwindow* window, double x, double y) {
     );
 }
 
-void Client::setViewDistance(int32_t viewDistance) {
-    m_camera.setFarPlane(toFarPlaneDistance(viewDistance));
-}
+void Client::processInput(GLFWwindow* window) {
+    bool isJump{false};
+    glm::vec2 direction{};
 
-void Client::requestViewDistance() {
-    // TODO: temporary solution
-    Network::Message message{ .id = Network::MessageId::RequestViewDistance };
-    Network::ProtocolStream& stream = message.stream;
-    int32_t viewDistance = m_options.renderDistance;
-    stream.write(viewDistance);
-    m_netClient.send(message);
-}
-
-void Client::processInput(GLFWwindow* window, const float dt) {
-    float speed = m_cameraSpeed * dt;
-
-    WorldPosition position = m_camera.position();
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        position += speed * m_camera.direction();
+        direction.y += 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        position -= speed * m_camera.direction();
+        direction.y -= 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        position += speed * glm::normalize(glm::cross(WORLD_UP, m_camera.direction()));
+        direction.x -= 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        position += speed * glm::normalize(glm::cross(m_camera.direction(), WORLD_UP));
+        direction.x += 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        position += speed * WORLD_UP;
+        isJump = true;
     }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        position -= speed * WORLD_UP;
+    // if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    //     position -= speed * WORLD_UP;
+    // }
+
+    if (direction.x != 0.0f || direction.y != 0.0f || isJump) {
+        sendInputCommand(*m_netClient.connection(), {m_pitch, m_yaw}, direction, isJump);
     }
-    m_camera.setPosition(position);
 }
 
-void Client::renderScene(const glm::vec3& origin, const Frustum& frustum, Shader& shader) {
-    m_chunkRenderer.render(origin, frustum, shader);
+void Client::renderScene(
+    const glm::vec3& origin,
+    const glm::mat4& viewProjection,
+    const Frustum& frustum,
+    Shader& terrainShader,
+    Shader& entityShader
+) {
+    terrainShader.bind();
+    terrainShader.setUniform("uViewProjection", viewProjection);
+    m_chunkRenderer.render(origin, frustum, terrainShader);
+
+    entityShader.bind();
+    entityShader.setUniform("uViewProjection", viewProjection);
+    for (auto [entity, position, rotation] :
+        m_registry.view<Ecs::Position, Ecs::Rotation, Ecs::NetworkInterpolated>().each()
+    ) {
+        const auto relativePosition = position.value - origin;
+
+        const auto model =
+            glm::translate(glm::mat4{1.0f}, relativePosition) * glm::mat4_cast(rotation.value);
+
+        entityShader.setUniform("uModel", model);
+
+        Renderer::draw(*m_playerMesh.first, m_playerMesh.second);
+    }
 }
 
 void Client::doRenderPipeline() {
@@ -399,10 +450,7 @@ void Client::doRenderPipeline() {
         m_shadowFrameBuffer->bind();
         Renderer::clear(glm::vec4{});
 
-        m_shadowShader->bind();
-        m_shadowShader->setUniform("uViewProjection", lightViewProjection);
-
-        renderScene(renderView.origin(), m_lightFrustum, *m_shadowShader);
+        renderScene(renderView.origin(), lightViewProjection, m_lightFrustum, *m_shadowShader, *m_shadowShader);
 
         m_shadowFrameBuffer->unbind();
 
@@ -421,10 +469,7 @@ void Client::doRenderPipeline() {
         m_frameBuffer->bind();
         Renderer::clear(glm::vec4{});
 
-        m_defaultShader->bind();
-        m_defaultShader->setUniform("uViewProjection", renderView.viewProjection());
-
-        renderScene(renderView.origin(), m_frustum, *m_defaultShader);
+        renderScene(renderView.origin(), renderView.viewProjection(), m_frustum, *m_defaultShader, *m_entityShader);
 
         m_frameBuffer->unbind();
     }
@@ -450,32 +495,68 @@ void Client::doRenderPipeline() {
     }
 }
 
-void Client::update(const float dt) {
+void Client::setViewDistance(int32_t viewDistance) {
+    m_camera.setFarPlane(toFarPlaneDistance(viewDistance));
+}
+
+void Client::updateServerTime(float serverTime) {
+    if (m_serverTimeOffset == 0.0f) {
+        m_serverTimeOffset = serverTime - m_realTime;
+    }
+}
+
+void Client::beginFrame() {
+    // User events
+    glfwPollEvents();
+    // Server events
+    m_netClient.update();
+}
+
+void Client::update(float dt) {
+    processInput(m_window.nativeWindow());
+
+    m_simulationTime += dt;
+}
+
+void Client::render(float dt) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // [= Server events =]
-
-    m_netClient.update();
-
-    m_chunkMesher.drain([this](ChunkMesher::Result& result) {
-        if (auto* chunk = m_world.chunkAt(result.position)) {
-            m_chunkRenderer.loadMesh(result.position, result.mesh);
-            chunk->mesh = std::move(result.mesh);
+    const auto& entitySnapshots = m_messageHandler->snapshots();
+    for (auto [entity, position] : m_registry.view<Ecs::Position, Ecs::NetworkInterpolated>().each()) {
+        auto it = entitySnapshots.find(m_entityToNetworkId.at(entity));
+        if (it == entitySnapshots.end()) {
+            continue;
         }
-    });
+        const auto& snapshots = it->second;
 
-    // [= User input =]
+        // constexpr float DELAY{SIMULATION_TICK};
 
-    processInput(m_window.nativeWindow(), dt);
+        // const auto time = m_realTime + m_serverTimeOffset - DELAY;
+        // const auto b = std::ranges::lower_bound(snapshots, time, {}, &EntitySnapshot::time);
+        // if (b == snapshots.begin() || b == snapshots.end()) {
+        //     continue;
+        // }
+        // const auto a = std::prev(b);
 
-    { // TODO: temporary solution
-        Network::Message message{ .id = Network::MessageId::PlayerMove };
-        Network::ProtocolStream& stream = message.stream;
-        stream.write(m_camera.position());
-        m_netClient.send(message);
+        // float t = time / b->time;
+
+        // // // TODO: play faster / slower when cant keep up?
+        // position.value = glm::vec3{
+        //     std::lerp(a->position.x, b->position.x, t),
+        //     std::lerp(a->position.y, b->position.y, t),
+        //     std::lerp(a->position.z, b->position.z, t)
+        // };
+        //rotation.value = glm::lerp(a->rotation, b->rotation, t);
+
+        if (!snapshots.empty()) {
+            position.value = snapshots.back().position;
+        }
     }
+
+    // TODO: set camera position from playerEntity
+    // (before prediction is implemented)
 
     // [= Render Scene =]
     doRenderPipeline();
@@ -500,7 +581,7 @@ void Client::update(const float dt) {
     if (!isControllingCamera(m_window.nativeWindow())) {
         ImGui::Begin("Options");
         if (ImGui::SliderInt("Render Distance", &m_options.renderDistance, 1, 64)) {
-            requestViewDistance();
+            sendViewDistanceRequest(*m_netClient.connection(), m_options.renderDistance);
         }
         ImGui::SliderFloat3("Sun Direction", glm::value_ptr(m_options.sunDirection), -1.0f, 1.0f);
         ImGui::End();
@@ -510,28 +591,51 @@ void Client::update(const float dt) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     m_window.display();
-    FrameMark;
+    m_realTime += dt;
+}
+
+void Client::endFrame() {
+    m_chunkMesher.drain([this](ChunkMesher::Result& result) {
+        if (auto* chunk = m_world.chunkAt(result.position)) {
+            m_chunkRenderer.loadMesh(result.position, result.mesh);
+            chunk->mesh = std::move(result.mesh);
+        }
+    });
 }
 
 void Client::run() {
     constexpr float FPS_UPDATE_PERIOD{0.25f};
-
     float nextFpsUpdate = FPS_UPDATE_PERIOD;
 
-    float lastFrame = 0.0f;
+    constexpr auto MAX_SIMULATION_TIME_PER_FRAME{ 0.1f };
+
+    float accumulator = 0.0f;
+    float lastFrame = glfwGetTime();
     while (isRunning()) {
         float currentFrame = glfwGetTime();
-        float deltaTime = currentFrame - lastFrame;
+        float dt = currentFrame - lastFrame;
+        accumulator += dt;
         lastFrame = currentFrame;
 
         if (nextFpsUpdate <= 0.0f) {
-            m_fps = 1.0f / deltaTime;
+            m_fps = 1.0f / dt;
             nextFpsUpdate = FPS_UPDATE_PERIOD;
         } else {
-            nextFpsUpdate -= deltaTime;
+            nextFpsUpdate -= dt;
         }
 
-        update(deltaTime);        
+        beginFrame();
+
+        accumulator = glm::min(accumulator, MAX_SIMULATION_TIME_PER_FRAME);
+        while (accumulator >= SIMULATION_TICK) {
+            update(SIMULATION_TICK);
+            accumulator -= SIMULATION_TICK;
+        }
+
+        render(dt);
+
+        endFrame();
+        FrameMark;
     }
 
     finish();

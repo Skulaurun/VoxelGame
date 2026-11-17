@@ -62,14 +62,19 @@ void WorldGenerator::generateTerrain(Chunk& chunk) {
                 return perlinNoise(position * scale) - bias;
             };
 
-            auto worldY = toWorldPosition(chunk.position.y, Chunk::SIZE - 1);
-            glm::ivec3 worldPosition{worldX, worldY, worldZ};
+            glm::ivec3 worldPosition{
+                worldX, toWorldPosition(chunk.position.y, Chunk::SIZE - 1), worldZ
+            };
 
             float aboveDensity = 0.0f;
             for (int32_t y = Chunk::SIZE - 1; y >= 0; y--, worldPosition.y--) {
                 const float levelDensity = density(worldPosition);
 
-                if (levelDensity > 0.0f) {
+                // TODO: surfaceHeight
+
+                // const float caveNoise = perlinNoise(glm::vec3{worldPosition} * 0.1f);
+                // const bool isCave = worldPosition.y <= baseHeight && caveNoise < -0.4f;
+                if (levelDensity > 0.0f /*&& !isCave*/) {
                     if (y == Chunk::SIZE - 1) {
                         aboveDensity = density(worldPosition + glm::ivec3{0, 1, 0});
                     }

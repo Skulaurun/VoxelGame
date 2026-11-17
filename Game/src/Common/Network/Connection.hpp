@@ -16,6 +16,8 @@ public:
     virtual void send(const Message& message) = 0;
     virtual void close() = 0;
 
+    virtual auto isConnected() const -> bool = 0;
+
 protected:
     TsQueue<Event>& m_queueIn;
 
@@ -46,7 +48,7 @@ public:
 
     auto sharedFromThis() { return std::static_pointer_cast<SocketConnection>(shared_from_this()); }
 
-    bool isConnected() const { return m_socket.is_open(); }
+    auto isConnected() const -> bool override { return m_socket.is_open(); }
 
 protected:
     void handleError(std::shared_ptr<SocketConnection>&& self, std::error_code error);
@@ -75,7 +77,7 @@ public:
 
     auto sharedFromThis() { return std::static_pointer_cast<InternalConnection>(shared_from_this()); }
 
-    bool isConnected() const { return m_connected; }
+    auto isConnected() const -> bool override { return m_connected; }
 
 private:
     bool m_connected;

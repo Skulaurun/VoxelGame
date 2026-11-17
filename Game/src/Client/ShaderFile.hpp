@@ -29,6 +29,16 @@ constexpr static char shadowVertex[] =
 #embed "../../shaders/shadow.vert"
 };
 
+constexpr static char entityVertex[] =
+{
+#embed "../../shaders/object.vert"
+};
+
+constexpr static char entityFragment[] =
+{
+#embed "../../shaders/object.frag"
+};
+
 constexpr static char debugFragment[] =
 {
 #embed "../../shaders/debug.frag"

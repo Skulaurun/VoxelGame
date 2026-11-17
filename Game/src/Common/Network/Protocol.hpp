@@ -8,12 +8,15 @@ enum class MessageId : uint16_t {
     _Unknown_ = 0,
 
     // Client <- Server
+    Pong,
     SetViewDistance,
     ChunkUpdate,
+    EntityUpdate,
 
     // Client -> Server
+    Ping,
     RequestViewDistance,
-    PlayerMove,
+    InputCommand,
 
     // Client <-> Server
 

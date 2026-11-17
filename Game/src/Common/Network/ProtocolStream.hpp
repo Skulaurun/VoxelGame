@@ -58,6 +58,22 @@ public:
         return *this;
     }
 
+    template<typename Value, glm::qualifier Qualifier>
+    auto write(const glm::qua<Value, Qualifier>& value) -> auto& {
+        for (std::size_t i = 0; i < 4; i++) {
+            write(value[i]);
+        }
+        return *this;
+    }
+
+    template<typename Value, glm::qualifier Qualifier>
+    auto read(glm::qua<Value, Qualifier>& value) -> auto& {
+        for (std::size_t i = 0; i < 4; i++) {
+            read(value[i]);
+        }
+        return *this;
+    }
+
     // VoxelGrid
 
     template<int32_t Size>

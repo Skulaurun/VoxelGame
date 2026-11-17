@@ -38,7 +38,9 @@ public:
     auto requestClientChunk(ClientId id, const glm::ivec3& position) -> bool;
 
     void run();
-    void update();
+    void update(float dt);
+    void beginUpdate();
+    void endUpdate();
     void stop();
 
     auto registry() -> auto& { return m_registry; }
@@ -49,6 +51,8 @@ public:
 private:
     World m_world;
     std::atomic<bool> m_running;
+
+    uint64_t m_tick;
 
     // probably part of World
     entt::registry m_registry;
@@ -67,6 +71,10 @@ private:
     std::unordered_map<ClientId, std::size_t> m_idToClient;
 
     std::unordered_map<glm::ivec3, std::vector<ClientId>> m_requestedChunks;
+
+    NetworkId m_lastNetworkId;
+    std::unordered_map<entt::entity, NetworkId> m_entityToNetworkId;
+    std::unordered_map<NetworkId, entt::entity> m_networkIdToEntity;
 
 };
 

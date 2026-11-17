@@ -58,8 +58,7 @@ void Window::restore() {
 }
 
 void Window::display() {
-	glfwSwapBuffers(window);
-	glfwPollEvents();
+    glfwSwapBuffers(window);
 }
 
 void Window::destroy() {

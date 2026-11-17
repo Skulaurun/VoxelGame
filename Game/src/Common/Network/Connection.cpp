@@ -13,8 +13,10 @@ SocketConnection::SocketConnection(TsQueue<Event>& queue, asio::io_context& cont
 {}
 
 SocketConnection::~SocketConnection() {
-    m_socket.shutdown(asio::socket_base::shutdown_both);
-    m_socket.close();
+    if (m_socket.is_open()) {
+        m_socket.shutdown(asio::socket_base::shutdown_both);
+        m_socket.close();
+    }
 }
 
 void SocketConnection::connect(const asio::ip::tcp::resolver::results_type& endpoints) {
