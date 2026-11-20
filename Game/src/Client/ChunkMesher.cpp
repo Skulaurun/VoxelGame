@@ -16,6 +16,11 @@ ChunkMesher::ChunkMesher(World& world) :
     m_thread{std::bind_front(&ChunkMesher::doWork, this)}
 {}
 
+ChunkMesher::~ChunkMesher() {
+    m_thread.request_stop();
+    m_workAvailable.notify_all();
+}
+
 constexpr auto NEIGHBOR_OFFSETS = std::to_array<glm::ivec3>({
     {-1, 0, 0}, {0, -1, 0}, {0, 0, -1},
     {1, 0, 0}, {0, 1, 0}, {0, 0, 1},

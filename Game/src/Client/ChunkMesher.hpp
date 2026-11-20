@@ -28,6 +28,7 @@ public:
 
 public:
     ChunkMesher(World& world);
+    ~ChunkMesher();
 
     void addChunk(Chunk& chunk, bool isNew);
     void removeChunk(const glm::ivec3& position);
