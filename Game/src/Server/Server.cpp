@@ -52,7 +52,12 @@ void Server::addClient(std::shared_ptr<Network::Connection> connection) {
     const auto playerEntity = spawnPlayer(m_registry, m_world);
     const auto clientId = m_lastClientId++;
     const auto index = m_clients.size();
-    auto& client = m_clients.emplace_back(clientId, playerEntity, ClientChunkView{*this, clientId}, connection);
+    auto& client = m_clients.emplace_back(
+        clientId, playerEntity,
+        ClientChunkView{*this, clientId},
+        std::deque<InputCommand>{},
+        connection
+    );
 
     const auto networkId = m_lastNetworkId++;
     m_entityToNetworkId.emplace(playerEntity, networkId);
@@ -111,23 +116,28 @@ void Server::beginUpdate() {
 }
 
 void Server::update(float dt) {
-    // FIXME: server lags and client jumps forward a lot
-    for (const auto& command : m_messageHandler->inputCommands()) {
-        // TODO: unordered_map<entity, queue> would probably be more efficient
-        if (auto* position = m_registry.try_get<Ecs::Position>(command.entity)) {
+    for (auto& client : m_clients) {
+        if (auto* position = m_registry.try_get<Ecs::Position>(client.playerEntity);
+            position && !client.inputCommands.empty()
+        ) {
+            const auto& command = client.inputCommands.front();
+
             constexpr auto MOVEMENT_SPEED{60.0f};
 
-            const glm::vec2 forward{
+            const glm::vec3 forward{
                 glm::cos(glm::radians(command.eulerAngles.y)),
+                0.0f,
                 glm::sin(glm::radians(command.eulerAngles.y))
             };
-            const glm::vec2 right{-forward.y, forward.x};
+            const glm::vec3 right{-forward.z, 0.0f, forward.x};
+            const glm::vec3 up{glm::cross(right, forward)};
 
             const auto speed = MOVEMENT_SPEED * dt;
-            const auto result = forward * command.movement.y + right * command.movement.x;
+            const auto result = forward * command.movement.z
+                + right * command.movement.x + up * command.movement.y;
             
-            position->value.x += speed * result.x;
-            position->value.z += speed * result.y;
+            position->value += speed * glm::normalize(result);
+            client.inputCommands.pop_front();
         }
     }
 
@@ -141,8 +151,6 @@ void Server::update(float dt) {
 }
 
 void Server::endUpdate() {
-    m_messageHandler->inputCommands().clear();
-
     for (auto& client : m_clients) {
         const auto& position = m_registry.get<Ecs::Position>(client.playerEntity);
         client.chunkView.update(position.value);

@@ -10,13 +10,6 @@ namespace Server {
 class Server;
 class World;
 
-struct InputCommand {
-    entt::entity entity;
-    glm::vec2 eulerAngles;
-    glm::vec2 movement; // [right, forward]
-    bool isJump;
-};
-
 // TODO: ServerHandler and ClientHandler are really similar,
 // the message handler dispatching should probably be at higher abstraction layer
 
@@ -28,8 +21,6 @@ public:
     void operator()(const Network::Connect& event);
     void operator()(const Network::Disconnect& event);
     void operator()(Network::IncomingMessage& message);
-
-    auto inputCommands() -> auto& { return m_inputCommands; }
 
 private:
     Server& m_server;
@@ -47,8 +38,6 @@ private:
 
         return idToHandler;
     }();
-
-    std::deque<InputCommand> m_inputCommands;
 
 };
 

@@ -52,7 +52,7 @@ private:
 
 };
 
-void sendInputCommand(Network::Connection& connection, const glm::vec2& eulerAngles, const glm::vec2& direction, bool isJump);
+void sendInputCommand(Network::Connection& connection, const glm::vec2& eulerAngles, const glm::vec3& direction, bool isJump);
 
 void sendViewDistanceRequest(Network::Connection& connection, int32_t value);
 

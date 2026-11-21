@@ -375,13 +375,13 @@ void Client::onCursorPosition(GLFWwindow* window, double x, double y) {
 
 void Client::processInput(GLFWwindow* window) {
     bool isJump{false};
-    glm::vec2 direction{};
+    glm::vec3 direction{};
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        direction.y += 1.0f;
+        direction.z += 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        direction.y -= 1.0f;
+        direction.z -= 1.0f;
     }
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
         direction.x -= 1.0f;
@@ -391,12 +391,13 @@ void Client::processInput(GLFWwindow* window) {
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         isJump = true;
+        direction.y += 1.0f;
     }
-    // if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-    //     position -= speed * WORLD_UP;
-    // }
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        direction.y -= 1.0f;
+    }
 
-    if (direction.x != 0.0f || direction.y != 0.0f || isJump) {
+    if (direction.x != 0.0f || direction.y != 0.0f || direction.z != 0.0f || isJump) {
         sendInputCommand(*m_netClient.connection(), {m_pitch, m_yaw}, direction, isJump);
     }
 }

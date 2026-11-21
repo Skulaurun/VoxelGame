@@ -17,7 +17,10 @@ ChunkMesher::ChunkMesher(World& world) :
 {}
 
 ChunkMesher::~ChunkMesher() {
-    m_thread.request_stop();
+    {
+        std::scoped_lock lock{m_mutex};
+        m_thread.request_stop();
+    }
     m_workAvailable.notify_all();
 }
 

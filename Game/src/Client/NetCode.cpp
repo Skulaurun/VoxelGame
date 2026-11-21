@@ -129,7 +129,7 @@ void ClientHandler::onEntityUpdate(std::shared_ptr<Network::Connection> sender, 
     }
 }
 
-void sendInputCommand(Network::Connection& connection, const glm::vec2& eulerAngles, const glm::vec2& direction, bool isJump) {
+void sendInputCommand(Network::Connection& connection, const glm::vec2& eulerAngles, const glm::vec3& direction, bool isJump) {
     Network::Message message{ .id = Network::MessageId::InputCommand };
     Network::ProtocolStream& stream = message.stream;
 

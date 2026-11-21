@@ -50,12 +50,12 @@ void ServerHandler::onRequestViewDistance(std::shared_ptr<Network::Connection> s
 }
 
 void ServerHandler::onInputCommand(std::shared_ptr<Network::Connection> sender, Network::ProtocolStream& stream) {    
-    const auto* client = m_server.findClient(sender);
+    auto* client = m_server.findClient(sender);
     if (!client) {
         return;
     }
 
-    auto& command = m_inputCommands.emplace_back(client->playerEntity);
+    auto& command = client->inputCommands.emplace_back();
     stream.read(command.eulerAngles);
     stream.read(command.movement);
     stream.read(command.isJump);
